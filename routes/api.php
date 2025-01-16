@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FileSystemController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\JwtMiddleware;
+use Illuminate\Support\Facades\Validator;
 
 // Group all authentication-related routes under the 'auth' prefix
 Route::prefix('auth')->group(function () {
@@ -18,6 +20,14 @@ Route::prefix('auth')->group(function () {
 });
 
 
+Route::prefix('file')->group(function (){
+    // Route::middleware([JwtMiddleware::class])->group(function(){
+    // });
+    Route::get('list', [FileSystemController::class , 'listFolders']);
+    Route::post('create-folder', [FileSystemController::class , 'createFolder']);
+    Route::post('delete-folder', [FileSystemController::class , 'deleteFolder']);
+    Route::get('run', [FileSystemController::class , 'runShellCommands']);
+});
 
 
 
