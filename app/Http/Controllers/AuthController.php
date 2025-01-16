@@ -85,6 +85,9 @@ class AuthController extends Controller
 
             DB::commit();  
 
+            // return response()->json(['status' => 'OK', 'message' => 'Login successful'])
+            //     ->withCookie(cookie()->forever('token', $token, 0, '/', null, false, true, false, 'Strict'));
+
             return response()->json([
                 'status' => 'OK',
                 'message' => 'Login Successfull',
