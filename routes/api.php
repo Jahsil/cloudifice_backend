@@ -26,6 +26,8 @@ Route::prefix('file')->group(function (){
     Route::get('list', [FileSystemController::class , 'listFolders']);
     Route::post('create-folder', [FileSystemController::class , 'createFolder']);
     Route::post('delete-folder', [FileSystemController::class , 'deleteFolder']);
+    Route::post('upload', [FileSystemController::class , 'uploadFile']);
+
     Route::get('run', [FileSystemController::class , 'runShellCommands']);
 });
 

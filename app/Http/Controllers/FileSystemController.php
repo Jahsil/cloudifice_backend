@@ -201,6 +201,56 @@ class FileSystemController extends Controller
         }
     }
 
+    public function uploadFile(Request $request){
+
+        $rules = [
+            'file' => 'required|file',
+            'path' => 'required|string'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+        }
+
+        try{
+
+        $file = $request->file('file');
+        $path = $request->input('path');
+
+        if(!File::isDirectory($path)){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The directory does not exist.',
+            ], 400);
+        }
+
+        $destinationPath = '/home/eyouel/Desktop/Trash';
+        $fileName = $file->getClientOriginalName();
+
+        $file->move($destinationPath, $fileName);
+
+        return response()->json([
+            'message' => 'File uploaded successfully',
+            'file_path' => $destinationPath . '/' . $fileName,
+        ], 200);
+
+       
+            
+        }
+        catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to upload file.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
     public function runShellCommands(){
 
