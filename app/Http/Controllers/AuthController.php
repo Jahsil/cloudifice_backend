@@ -83,15 +83,19 @@ class AuthController extends Controller
 
             $token = JWTAuth::claims($customClaims)->fromUser($user);
 
-            DB::commit();  
+            DB::commit();
 
-            // return response()->json(['status' => 'OK', 'message' => 'Login successful'])
-            //     ->withCookie(cookie()->forever('token', $token, 0, '/', null, false, true, false, 'Strict'));
+            return response()->json(['status' => 'OK', 'message' => 'Login successful'])
+                ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), false, true, false, 'Lax'));
+
+
+            //  return response()->json(['status' => 'OK', 'message' => 'Login successful'])
+            //      ->withCookie(cookie()->forever('token', $token, 0, '/', null, false, true, false, 'Strict'));
 
             return response()->json([
                 'status' => 'OK',
                 'message' => 'Login Successfull',
-                'access_token' => $token,
+                // 'access_token' => $token,
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -130,7 +134,16 @@ class AuthController extends Controller
     
             DB::commit();  
     
-            return response()->json($user);
+            return response()->json([
+                "status" => "OK", 
+                "message" => [
+                    "first_name" => $user->first_name,
+                    "last_name" => $user->last_name,
+                    "email" => $user->email,
+                    "nationality" => $user->nationality,
+                    "phone" => $user->phone,
+                ]
+            ]);
     
         } catch (\Exception $e) {
             DB::rollBack();  
@@ -147,14 +160,23 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Invalidate the token
-            JWTAuth::invalidate(JWTAuth::parseToken());
+            $token = $request->cookie('token');
 
-            return response()->json(['message' => 'Successfully logged out']);
+            if (!$token) {
+                return response()->json(['error' => 'No token found'], 400);
+            }
+
+            JWTAuth::setToken($token)->invalidate();
+
+            // Remove the cookie
+            return response()->json(['status'=>'OK', 'message' => 'Successfully logged out'])
+                ->withCookie(cookie()->forget('token'));
+
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to log out, token invalid'], 400);
         }
     }
+
 
     public function refreshToken(Request $request)
     {
