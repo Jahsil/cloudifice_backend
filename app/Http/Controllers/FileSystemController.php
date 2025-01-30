@@ -30,11 +30,16 @@ class FileSystemController extends Controller
              $request->validate([
                  'path' => 'required|string',
              ]);
+
+             $encodedURI = trim($request->query('path'));
      
-             $path = trim($request->query('path'));
+	     $path = urldecode($encodedURI);
+
+	     Log::info("Path is :::");
+	     Log::info(array($path));
      
              // Prevent invalid paths (e.g., paths with spaces or directory traversal attempts)
-             if (strpos($path, '..') !== false || preg_match('/\s/', $path)) {
+             if (strpos($path, '..') !== false ) {
                  return response()->json([
                      'status' => 'error',
                      'message' => 'Invalid path provided.',
