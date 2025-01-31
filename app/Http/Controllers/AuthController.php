@@ -189,11 +189,11 @@ class AuthController extends Controller
 
             DB::commit();
 
-            // return response()->json(['status' => 'OK', 'message' => 'Login successful'])
-            //     ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), false, true, false, 'Lax'));
-
             return response()->json(['status' => 'OK', 'message' => 'Login successful'])
-                ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), true, true, false, 'None')); // 👈 SameSite=None
+                ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), false, true, false, 'None'));
+
+            // return response()->json(['status' => 'OK', 'message' => 'Login successful'])
+            //     ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), true, true, false, 'None')); // 👈 SameSite=None
 
 
 
