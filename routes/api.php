@@ -11,6 +11,8 @@ Route::prefix('auth')->group(function () {
     Route::middleware([JwtMiddleware::class])->group(function () {
         Route::get('user', [AuthController::class, 'user']);
         Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('finish_registration', [AuthController::class , 'finishRegistration'])->withoutMiddleware([JwtMiddleware::class]);
+
 
      
         Route::post('login', [AuthController::class, 'login'])->withoutMiddleware([JwtMiddleware::class]);
@@ -18,7 +20,6 @@ Route::prefix('auth')->group(function () {
     
     });
 });
-
 
 Route::prefix('file')->group(function (){
     // Route::middleware([JwtMiddleware::class])->group(function(){
@@ -29,6 +30,7 @@ Route::prefix('file')->group(function (){
     Route::post('upload', [FileSystemController::class , 'uploadFile']);
 
     Route::get('run', [FileSystemController::class , 'runShellCommands']);
+
 });
 
 

@@ -7,6 +7,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
+
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+
 
 use Illuminate\Support\Facades\DB;   
 use Illuminate\Support\Facades\Log; 
@@ -62,7 +68,105 @@ class AuthController extends Controller
         }
     }
 
+    // public function finishRegistration(Request $request){
 
+
+    //     $rules = [
+    //         'username' => 'required|string|alpha_dash',
+    //     ];
+
+    //     $validator = Validator::make($request->all(), $rules);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'error' => $validator->errors(),
+    //         ], 422);
+    //     }
+
+
+    //     try {
+    //         $username = trim($request->input("username"));
+    //         $rootPath = "/home/eyouel/Desktop";
+    //         $userPath = "$rootPath/$username";
+           
+    //         // Check if the user directory already exists
+    //         if (File::exists($userPath)) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => 'User already exists. Please use a different username.',
+    //             ], 400);
+    //         }
+
+    //         File::makeDirectory($userPath, 0755, true);
+
+    //         return response()->json([
+    //             'status' => 'OK',
+    //             'message' => 'User created successfully',
+    //         ], 200);
+
+
+    //     }
+    //     catch (\Exception $e) {
+
+    //         // Return an error response
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'User creation failed',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+
+    public function finishRegistration(Request $request) {
+
+        $rules = [
+            'username' => 'required|string|alpha_dash',
+        ];
+    
+        $validator = Validator::make($request->all(), $rules);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+        }
+    
+        $username = trim($request->input("username"));
+    
+        // Check if user already exists
+        $checkUser = new Process(["id", "-u", $username]);
+        $checkUser->run();
+    
+        if ($checkUser->isSuccessful()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User already exists. Please use a different username.',
+            ], 400);
+        }
+
+    
+        // Create the user
+        $process = new Process(["sudo", "/usr/sbin/useradd", "-m", "-s", "/bin/bash", $username]);
+        $process->run();
+    
+        if (!$process->isSuccessful()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create user',
+                'error' => $process->getErrorOutput(),
+            ], 500);
+        }
+    
+        return response()->json([
+            'status' => 'OK',
+            'message' => 'User created successfully',
+           
+        ], 200);
+    }
+    
     // Login a user
     public function login(Request $request)
     {
