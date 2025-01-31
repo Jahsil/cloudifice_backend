@@ -189,8 +189,10 @@ class AuthController extends Controller
 
             DB::commit();
 
+            // secure https -> http only -> 
+
             return response()->json(['status' => 'OK', 'message' => 'Login successful'])
-                ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), false, false, false, 'None'));
+                ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), true, true, false, 'None'));
 
             // return response()->json(['status' => 'OK', 'message' => 'Login successful'])
             //     ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), true, true, false, 'None')); // 👈 SameSite=None
