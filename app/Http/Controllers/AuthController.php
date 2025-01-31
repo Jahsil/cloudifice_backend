@@ -193,7 +193,8 @@ class AuthController extends Controller
             //     ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), false, true, false, 'Lax'));
 
             return response()->json(['status' => 'OK', 'message' => 'Login successful'])
-            ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain') ?? request()->getHost(), false, false, false, 'Lax'));
+                ->withCookie(cookie('token', $token, 60 * 24 * 30, '/', config('session.domain'), true, true, false, 'None')); // 👈 SameSite=None
+
 
 
 
