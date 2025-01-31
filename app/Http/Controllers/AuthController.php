@@ -281,7 +281,7 @@ class AuthController extends Controller
 
             // Remove the cookie
             return response()->json(['status' => 'OK', 'message' => 'Successfully logged out'])
-                ->withCookie(cookie()->forget('token', '/', config('session.domain'), true, true, 'None'));
+                ->withCookie(cookie()->forget('token', '/', config('session.domain'), true, true, false, 'None'));
 
             // return response()->json(['status'=>'OK', 'message' => 'Successfully logged out'])
             //     ->withCookie(cookie()->forget('token','/', config('session.domain'), true, true, false, 'None'));
