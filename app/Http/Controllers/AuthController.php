@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\QueryException;
+
 
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -52,6 +54,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => 'OK',
+                'user' => $user,
                 'message' => 'User Registered Successfully'
             ], 201);
 
@@ -123,6 +126,7 @@ class AuthController extends Controller
 
         $rules = [
             'username' => 'required|string|alpha_dash',
+            'user_id' => 'required|integer'
         ];
     
         $validator = Validator::make($request->all(), $rules);
@@ -135,6 +139,7 @@ class AuthController extends Controller
         }
     
         $username = trim($request->input("username"));
+        $user_id = trim($request->input("user_id"));
     
         // Check if user already exists
         $checkUser = new Process(["id", "-u", $username]);
@@ -145,6 +150,30 @@ class AuthController extends Controller
                 'status' => 'error',
                 'message' => 'User already exists. Please use a different username.',
             ], 400);
+        }
+
+        try {
+            // insert the username in the users table 
+            $user = DB::table('users')
+                ->where('id', $user_id)
+                ->first();
+            if($user && $user->username){
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User already exists',
+                ], 500);
+            }
+            
+        } catch (QueryException $e) {
+            // Log the error for debugging
+            Log::error("User insert failed: " . $e->getMessage());
+    
+            return response()->json(['error' => 'Failed to create user'], 500);
+        } catch (\Exception $e) {
+            // Catch any other errors
+            Log::error("Unexpected error: " . $e->getMessage());
+    
+            return response()->json(['error' => 'Something went wrong'], 500);
         }
 
     
@@ -159,7 +188,71 @@ class AuthController extends Controller
                 'error' => $process->getErrorOutput(),
             ], 500);
         }
+
+        // create trash 
+        $trashPath = "/home" . "/" . $username . "/" . "Trash";
+        $trashFolder = new Process(["sudo", "/usr/bin/mkdir", "-p", $trashPath]);
+        $trashFolder->run();
+
+        if (!$trashFolder->isSuccessful()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Trash already exists.',
+                'error' => $trashFolder->getErrorOutput()
+            ], 400);
+        }
+
+        // create tmp folder 
+        $tmpPath = "/home" . "/" . $username . "/" . "tmp";
+
+        $tmpFolder = new Process(["sudo", "/usr/bin/mkdir","-p", $tmpPath]);
+        $tmpFolder->run();
+
+        if (!$tmpFolder->isSuccessful()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'tmp already exists.',
+                'error' => $tmpFolder->getErrorOutput()
+
+            ], 400);
+        }
+
+        // create archive folder 
+        $archivePath = "/home" . "/" . $username . "/" . "Archive";
+
+        $archiveFolder = new Process(["sudo", "/usr/bin/mkdir","-p", $archivePath]);
+        $archiveFolder->run();
+
+        if (!$archiveFolder->isSuccessful()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Archive already exists.',
+                'error' => $archiveFolder->getErrorOutput()
+
+            ], 400);
+        }
+
+        try {
+            // insert the username in the users table 
+            $new_username = DB::table('users')
+                ->where('id', $user_id)
+                ->update([
+                    'username' => $username
+                ]);
+            
+        } catch (QueryException $e) {
+            // Log the error for debugging
+            Log::error("User insert failed: " . $e->getMessage());
     
+            return response()->json(['error' => 'Failed to create user'], 500);
+        } catch (\Exception $e) {
+            // Catch any other errors
+            Log::error("Unexpected error: " . $e->getMessage());
+    
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
+
+
         return response()->json([
             'status' => 'OK',
             'message' => 'User created successfully',
@@ -251,6 +344,7 @@ class AuthController extends Controller
                     "first_name" => $user->first_name,
                     "last_name" => $user->last_name,
                     "email" => $user->email,
+                    "username" => $user->username,
                     "nationality" => $user->nationality,
                     "phone" => $user->phone,
                 ]
