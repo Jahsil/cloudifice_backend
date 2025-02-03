@@ -27,6 +27,10 @@ Route::prefix('file')->group(function (){
         Route::post('create-folder', [FileSystemController::class , 'createFolder']);
         Route::post('delete-folder', [FileSystemController::class , 'deleteFolder']);
         Route::post('upload', [FileSystemController::class , 'uploadFile']);
+
+
+        Route::post('upload_file', [FileSystemController::class , 'uploadFile2']);
+        Route::post('check_chunk', [FileSystemController::class , 'checkChunks']);
     
         Route::get('run', [FileSystemController::class , 'runShellCommands']);
     });
