@@ -27,13 +27,23 @@ class FileSystemController extends Controller
      {
          try {
              // Validate the request
-             $request->validate([
-                 'path' => 'required|string',
-             ]);
+             $rules = [
+                'path' => 'required|string'
+            ];
+    
+            $validator = Validator::make($request->query(), $rules);
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'error' => $validator->errors(),
+                ], 422);
+            }
 
-             $encodedURI = trim($request->query('path'));
+            $encodedURI = trim($request->query('path'));
      
-	     $path = urldecode($encodedURI);
+	        $path = urldecode($encodedURI);
+
 
 	     Log::info("Path is :::");
 	     Log::info(array($path));
@@ -47,7 +57,10 @@ class FileSystemController extends Controller
              }
      
              $rootPath = "/home";
-             $searchPath = realpath($rootPath . '/' . $path);
+             $username = $request->attributes->get("user")->username;
+            //  $searchPath = realpath($rootPath . '/' . $path);
+             $searchPath = $rootPath . '/' . $username . '/'  . $path;
+
      
              // Ensure the search path exists and is within the allowed root directory
              if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
@@ -110,9 +123,23 @@ class FileSystemController extends Controller
      
         $path = trim($request->query('path'));
         $name = trim($request->query('name'));
+
+        $rootPath = "/home";
+        $username = $request->attributes->get("user")->username;
         
-        
-        $fullPath = "/home/eyouel/" . $path . "/" . $name;
+    
+        $searchPath = $rootPath . '/' . $username . '/'  . $path;
+
+     
+        // Ensure the search path exists and is within the allowed root directory
+        if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No file or directory found.',
+            ], 400);
+        }
+
+        $fullPath = "/home" . "/" . $username . "/" . $path . "/" . $name;
 
     
         try {
@@ -144,7 +171,6 @@ class FileSystemController extends Controller
      }  
      
     public function deleteFolder(Request $request){
-        $trashPath = "/home/eyouel/Trash";
 
         $rules = [
             'path' => 'required|string'
@@ -159,9 +185,27 @@ class FileSystemController extends Controller
             ], 422);
         }
 
-        $path = trim($request->query('path'));        
+        $path = trim($request->query('path'));       
         
-        $fullPath = "/home/eyouel/" . $path;
+        $rootPath = "/home";
+        $username = $request->attributes->get("user")->username;
+        
+    
+        $searchPath = $rootPath . '/' . $username . '/'  . $path;
+
+     
+        // Ensure the search path exists and is within the allowed root directory
+        if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No file or directory found.',
+            ], 400);
+        }
+
+        
+        $fullPath = "/home" . "/" . $username . "/" . $path;
+        $trashPath = "/home" . "/". $username . "/". "Trash";
+
 
        try {
 
@@ -255,6 +299,149 @@ class FileSystemController extends Controller
             ], 500);
         }
     }
+
+    public function uploadFile2(Request $request){
+        $rules = [
+            'file' => 'required|file',
+            'fileName' => 'required|string',
+            'chunkIndex' => 'required|integer',
+            'totalChunks' => 'required|integer',
+            'path' => 'required|string'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+	    }
+
+	
+
+        $fileName = $request->fileName;
+        $chunkIndex = $request->chunkIndex;
+        $totalChunks = $request->totalChunks;
+        $path = $request->path;
+        
+
+        $rootPath = "/home";
+        $username = $request->attributes->get("user")->username;
+        
+    
+        $searchPath = $rootPath . '/' . $username . '/'  . $path;
+
+        // Ensure the search path exists and is within the allowed root directory
+        if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No file or directory found.',
+            ], 400);
+        }
+
+        $fullPath = "/home" . "/" . $username . "/" . $path;
+        $tempDir = "/home" . "/" . $username . "/". "tmp";
+
+        if(!File::isDirectory($tempDir)){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'tmp directory does not exist.',
+            ], 400);
+        }
+
+        if(!File::isDirectory($fullPath)){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The destination directory does not exist.',
+            ], 400);
+        }
+
+
+        // Save the chunk
+        $chunkPath = $tempDir . "{$fileName}.part{$chunkIndex}";
+        file_put_contents($chunkPath, file_get_contents($request->file('file')), FILE_APPEND);
+
+        
+        // Check if all chunks are received
+        if ($this->allChunksReceived($fileName, $totalChunks, $tempDir)) {
+            $finalPath = "/{$fullPath}/{$fileName}";
+            $this->mergeChunks($fileName, $totalChunks, $tempDir, $finalPath);
+        }
+
+        return response()->json(['status' => 'OK','message' => 'Chunk uploaded successfully']);
+
+
+    }
+
+    private function allChunksReceived($fileName, $totalChunks, $tempDir)
+    {
+        for ($i = 0; $i < $totalChunks; $i++) {
+            if (!file_exists($tempDir . "{$fileName}.part{$i}")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function mergeChunks($fileName, $totalChunks, $tempDir, $finalPath)
+    {
+        $finalFile = fopen($finalPath, 'w');
+        for ($i = 0; $i < $totalChunks; $i++) {
+            $chunkPath = $tempDir . "{$fileName}.part{$i}";
+            fwrite($finalFile, file_get_contents($chunkPath));
+            unlink($chunkPath); // Delete chunk after merging
+        }
+        fclose($finalFile);
+    }
+
+    public function checkChunks(Request $request){
+        $rules = [
+            'fileName' => 'required|string',           
+            // 'path' => 'required|string'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+	    }
+
+        $fileName = $request->fileName;
+
+        $username = $request->attributes->get("user")->username;
+        
+
+        $tempDir = "/home" . "/". $username . "/". "tmp";
+
+        if(!File::isDirectory($tempDir)){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'tmp directory does not exist.',
+            ], 400);
+        }
+
+        $files = File::files($tempDir);
+        $largestChunkIndex = 0;
+
+        foreach ($files as $file){
+            $filename = $file->getFilename();
+            if (preg_match('/^(.*)\.part(\d+)$/', $filename, $matches)) {
+                $baseName = $matches[1]; // This will be 'test.zip'
+                $partNumber = (int) $matches[2];
+
+                if ($baseName === $fileName && $partNumber > $largestChunkIndex) {
+                    $largestChunkIndex = $partNumber;
+                }
+            }
+        }
+
+        return response()->json(['status' => 'OK','data' => $largestChunkIndex]);
+    }
+   
 
 
     public function runShellCommands(){
