@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,29 +30,24 @@ class FileSystemController extends Controller
      {
          try {
              // Validate the request
-             $rules = [
-                'path' => 'required|string'
-            ];
-    
-            $validator = Validator::make($request->query(), $rules);
-    
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'error' => $validator->errors(),
-                ], 422);
-            }
-
-            $encodedURI = trim($request->query('path'));
+            //  $rules = [
+            //      'path' => 'required|string',
+            //  ];
      
-	        $path = urldecode($encodedURI);
-
-
-	     Log::info("Path is :::");
-	     Log::info(array($path));
+            //  $validator = Validator::make($request->query(), $rules);
      
-             // Prevent invalid paths (e.g., paths with spaces or directory traversal attempts)
-             if (strpos($path, '..') !== false ) {
+            //  if ($validator->fails()) {
+            //      return response()->json([
+            //          'status' => 'error',
+            //          'error' => $validator->errors(),
+            //      ], 422);
+            //  }
+     
+             $encodedURI = trim($request->query('path'));
+             $path = urldecode($encodedURI);
+     
+             // Prevent directory traversal attacks
+             if (strpos($path, '..') !== false || strpos($path, '/') === 0) {
                  return response()->json([
                      'status' => 'error',
                      'message' => 'Invalid path provided.',
@@ -58,9 +56,9 @@ class FileSystemController extends Controller
      
              $rootPath = "/home";
              $username = $request->attributes->get("user")->username;
-            //  $searchPath = realpath($rootPath . '/' . $path);
-             $searchPath = $rootPath . '/' . $username . '/'  . $path;
-
+     
+             // Construct the full search path
+             $searchPath = realpath($rootPath . '/' . $username . '/' . $path . '/');
      
              // Ensure the search path exists and is within the allowed root directory
              if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
@@ -71,24 +69,37 @@ class FileSystemController extends Controller
              }
      
              // Get directory contents
-             $contents = File::glob($searchPath . '/*');
+             $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
+             Log::info("Contents of directory: " . json_encode($contents));
      
-             $data = array_map(function ($item) {
-                 $stat = stat($item);
-                 $ownerInfo = posix_getpwuid($stat['uid']); 
-                 $groupInfo = posix_getgrgid($stat['gid']); 
+             // Process each item in the directory
+             $data = [];
+             foreach ($contents as $item) {
+                Log::info("File----  $item");
+                if(str_starts_with($item,".")){
+                    continue;
+                }
+                 $itemPath = $searchPath . '/' . $item;
      
-                 return [
-                     'permissions' => substr(sprintf('%o', fileperms($item)), -4), // File permissions
+                 if (!file_exists($itemPath)) {
+                     continue; // Skip if the item no longer exists
+                 }
+     
+                 $stat = stat($itemPath);
+                 $ownerInfo = posix_getpwuid($stat['uid']);
+                 $groupInfo = posix_getgrgid($stat['gid']);
+     
+                 $data[] = [
+                     'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
                      'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
                      'group' => $groupInfo['name'] ?? 'unknown', // File group
-                     'size' => is_dir($item) ? "unknown" : $stat['size'], // Directory or file size
+                     'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
                      'date' => date('M d', $stat['mtime']), // Last modified date
                      'time' => date('H:i', $stat['mtime']), // Last modified time
-                     'name' => basename($item), // File or directory name
-                     'type' => is_dir($item) ? 'directory' : 'file', // Type of file
+                     'name' => $item, // File or directory name
+                     'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
                  ];
-             }, $contents);
+             }
      
              return response()->json([
                  'status' => 'OK',
@@ -97,6 +108,7 @@ class FileSystemController extends Controller
              ], 200);
      
          } catch (\Exception $e) {
+             Log::error("Failed to access directory: " . $e->getMessage());
              return response()->json([
                  'status' => 'error',
                  'message' => 'Failed to access directory.',
