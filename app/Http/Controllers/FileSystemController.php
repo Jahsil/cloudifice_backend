@@ -117,6 +117,140 @@ class FileSystemController extends Controller
          }
      }
 
+     public function listArchive(Request $request)
+     {
+         try {
+             $rootPath = "/home";
+             $username = $request->attributes->get("user")->username;
+             $path = "Archive";
+     
+             // Construct the full search path
+             $searchPath = realpath($rootPath . '/' . $username . '/' . $path );
+     
+             // Ensure the search path exists and is within the allowed root directory
+             if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+                 return response()->json([
+                     'status' => 'error',
+                     'message' => 'No file or directory found.',
+                 ], 400);
+             }
+     
+             // Get directory contents
+             $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
+             Log::info("Contents of directory: " . json_encode($contents));
+     
+             // Process each item in the directory
+             $data = [];
+             foreach ($contents as $item) {
+                Log::info("File----  $item");
+                if(str_starts_with($item,".")){
+                    continue;
+                }
+                 $itemPath = $searchPath . '/' . $item;
+     
+                 if (!file_exists($itemPath)) {
+                     continue; // Skip if the item no longer exists
+                 }
+     
+                 $stat = stat($itemPath);
+                 $ownerInfo = posix_getpwuid($stat['uid']);
+                 $groupInfo = posix_getgrgid($stat['gid']);
+     
+                 $data[] = [
+                     'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
+                     'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
+                     'group' => $groupInfo['name'] ?? 'unknown', // File group
+                     'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
+                     'date' => date('M d', $stat['mtime']), // Last modified date
+                     'time' => date('H:i', $stat['mtime']), // Last modified time
+                     'name' => $item, // File or directory name
+                     'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
+                 ];
+             }
+     
+             return response()->json([
+                 'status' => 'OK',
+                 'message' => 'File query successful.',
+                 'result' => $data,
+             ], 200);
+     
+         } catch (\Exception $e) {
+             Log::error("Failed to access directory: " . $e->getMessage());
+             return response()->json([
+                 'status' => 'error',
+                 'message' => 'Failed to access directory.',
+                 'error' => $e->getMessage(),
+             ], 500);
+         }
+     }
+
+     public function listTrash(Request $request)
+     {
+         try {
+             $rootPath = "/home";
+             $username = $request->attributes->get("user")->username;
+             $path = "Trash";
+     
+             // Construct the full search path
+             $searchPath = realpath($rootPath . '/' . $username . '/' . $path );
+     
+             // Ensure the search path exists and is within the allowed root directory
+             if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+                 return response()->json([
+                     'status' => 'error',
+                     'message' => 'No file or directory found.',
+                 ], 400);
+             }
+     
+             // Get directory contents
+             $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
+             Log::info("Contents of directory: " . json_encode($contents));
+     
+             // Process each item in the directory
+             $data = [];
+             foreach ($contents as $item) {
+                Log::info("File----  $item");
+                if(str_starts_with($item,".")){
+                    continue;
+                }
+                 $itemPath = $searchPath . '/' . $item;
+     
+                 if (!file_exists($itemPath)) {
+                     continue; // Skip if the item no longer exists
+                 }
+     
+                 $stat = stat($itemPath);
+                 $ownerInfo = posix_getpwuid($stat['uid']);
+                 $groupInfo = posix_getgrgid($stat['gid']);
+     
+                 $data[] = [
+                     'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
+                     'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
+                     'group' => $groupInfo['name'] ?? 'unknown', // File group
+                     'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
+                     'date' => date('M d', $stat['mtime']), // Last modified date
+                     'time' => date('H:i', $stat['mtime']), // Last modified time
+                     'name' => $item, // File or directory name
+                     'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
+                 ];
+             }
+     
+             return response()->json([
+                 'status' => 'OK',
+                 'message' => 'File query successful.',
+                 'result' => $data,
+             ], 200);
+     
+         } catch (\Exception $e) {
+             Log::error("Failed to access directory: " . $e->getMessage());
+             return response()->json([
+                 'status' => 'error',
+                 'message' => 'Failed to access directory.',
+                 'error' => $e->getMessage(),
+             ], 500);
+         }
+     }
+
      public function createFolder(Request $request){
  
         $rules = [

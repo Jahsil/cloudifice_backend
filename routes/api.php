@@ -24,6 +24,8 @@ Route::prefix('auth')->group(function () {
 Route::prefix('file')->group(function (){
     Route::middleware([JwtMiddleware::class])->group(function(){
         Route::get('list', [FileSystemController::class , 'listFolders']);
+        Route::get('list-archive', [FileSystemController::class , 'listArchive']);
+        Route::get('list-trash', [FileSystemController::class , 'listTrash']);
         Route::post('create-folder', [FileSystemController::class , 'createFolder']);
         Route::post('delete-folder', [FileSystemController::class , 'deleteFolder']);
         Route::post('upload', [FileSystemController::class , 'uploadFile']);
