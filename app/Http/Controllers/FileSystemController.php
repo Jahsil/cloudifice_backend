@@ -587,6 +587,54 @@ class FileSystemController extends Controller
 
         return response()->json(['status' => 'OK','data' => $largestChunkIndex]);
     }
+
+    public function viewFile(Request $request){
+        
+
+        $encodedURI = trim($request->query('path'));
+        $path = urldecode($encodedURI);
+
+        $rootPath = "/home";
+        // $username = $request->attributes->get("user")->username;
+        $username = "eyouel";
+
+        // Construct the full search path
+        $filePath = $rootPath . '/' . $username . '/' . $path;
+       
+
+        // Ensure the search path exists and is within the allowed root directory
+        if (!$filePath || !File::exists($filePath) || strpos($filePath, $rootPath) !== 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No file or directory found.',
+            ], 400);
+        }
+
+        // Validate the file path
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            abort(404, "File not found or inaccessible $filePath");
+        }
+
+        $fileName = basename($filePath);
+        $mimeType = mime_content_type($filePath);
+        $action = $request->query('action', 'view');
+
+        $headers = [
+            'Content-Type' => $mimeType,
+        ];
+
+        if ($action === 'download') {
+            $headers['Content-Disposition'] = 'attachment; filename="' . $fileName . '"';
+        } else {
+            $headers['Content-Disposition'] = 'inline';
+        }
+
+        return response()->stream(function () use ($filePath) {
+            readfile($filePath);
+        }, 200, $headers);
+
+        }
+    
    
 
 
