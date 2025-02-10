@@ -10,6 +10,10 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
+
+
 
 
 use Symfony\Component\Process\Process;
@@ -272,13 +276,13 @@ class AuthController extends Controller
                 return response()->json(['error' => 'Invalid credentials'], 401);
             }
 
-            $user = auth()->user();
+            // $user = auth()->user();
 
             $customClaims = [
                 'roles' => [],
             ];
 
-            $token = JWTAuth::claims($customClaims)->fromUser($user);
+            // $token = JWTAuth::claims($customClaims)->fromUser($user);
 
             DB::commit();
 
@@ -323,6 +327,137 @@ class AuthController extends Controller
     }
 
 
+    // Register User
+    public function registerSanctum(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => [
+                    'required',
+                    'string',
+                    'min:8', // Minimum 8 characters
+                    'regex:/[A-Z]/', // At least one uppercase letter
+                    'regex:/[a-z]/', // At least one lowercase letter
+                    'regex:/[0-9]/', // At least one number
+                    'regex:/[@$!%*?&#]/', // At least one special character
+                ],
+            ]);
+
+            $user = User::create([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'nationality' => $request->nationality,
+                'password' => Hash::make($request->password),
+            ]);
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'user' => [
+                    'id' => $user->id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                ],
+                'token' => $token
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Registration Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
+        }
+    }
+
+    // Login User
+    public function loginSanctum(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+
+            $key = 'login_attempts_' . $request->ip();
+
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                return response()->json(['error' => 'Too many login attempts. Try again later.'], 429);
+            }
+
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                RateLimiter::hit($key, 60); // Store failed attempt for 1 minute
+                Log::warning('Failed login attempt from IP: ' . $request->ip());
+                
+                throw ValidationException::withMessages([
+                    'email' => ['Invalid credentials'],
+                ]);
+            }
+
+            RateLimiter::clear($key); // Reset failed attempts on successful login
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'user' => [
+                    'id' => $user->id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                ],
+                'token' => $token
+            ], 200)->cookie(
+                'auth_token', // Cookie name
+                $token, // Token value
+                60 * 24 * 7, // Expiration (7 days)
+                '/', // Path (accessible to all routes)
+                config('session.domain'), // Domain (ensure frontend can access)
+                false, // Secure (allow HTTP & HTTPS)
+                false, // HttpOnly (allow JavaScript access)
+                false // SameSite=Lax (prevent CSRF but allow cross-domain)
+            );;
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->errors()], 401);
+        } catch (\Exception $e) {
+            Log::error('Login Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
+        }
+    }
+
+    // Logout User
+    public function logoutSanctum(Request $request)
+    {
+        try {
+            $request->user()->tokens()->delete();
+            return response()->json(['message' => 'Logged out successfully']);
+        } catch (\Exception $e) {
+            Log::error('Logout Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Something went wrong.'], 500);
+        }
+    }
+
+    // Get Authenticated User
+    public function userSanctum(Request $request)
+    {
+        try {
+            return response()->json([
+                'id' => $request->user()->id,
+                'first_name' => $request->user()->first_name,
+                'last_name' => $request->user()->last_name,
+                'username' => $request->user()->username,
+                'email' => $request->user()->email,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Fetch Auth User Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Could not fetch user details.'], 500);
+        }
+    }
+    
     // Get the authenticated user
     public function user()
     {

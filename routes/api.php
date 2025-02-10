@@ -12,20 +12,30 @@ use Illuminate\Support\Facades\Broadcast;
 
 // Group all authentication-related routes under the 'auth' prefix
 Route::prefix('auth')->group(function () {
-    Route::middleware([JwtMiddleware::class])->group(function () {
-        Route::get('user', [AuthController::class, 'user']);
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('finish_registration', [AuthController::class , 'finishRegistration'])->withoutMiddleware([JwtMiddleware::class]);
+    // sanctum 
+    Route::post('/register', [AuthController::class, 'registerSanctum']);
+    Route::post('/login', [AuthController::class, 'loginSanctum']);
 
-
-     
-        Route::post('login', [AuthController::class, 'login'])->withoutMiddleware([JwtMiddleware::class]);
-        Route::post('register', [AuthController::class, 'register'])->withoutMiddleware([JwtMiddleware::class]);
-    
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/user', [AuthController::class, 'userSanctum']);
+        Route::post('/logout', [AuthController::class, 'logoutSanctum']);
     });
+
+
+    // Route::post('/login', [AuthController::class, 'loginSanctum']);
+    // Route::post('/logout', [AuthController::class, 'logoutSanctum'])->middleware('auth:sanctum');
+    // Route::get('/user', [AuthController::class, 'userSanctum'])->middleware('auth:sanctum');
+
+
+    // Route::get('user', [AuthController::class, 'user']);
+    // Route::post('logout', [AuthController::class, 'logout']);
+    // Route::post('finish_registration', [AuthController::class , 'finishRegistration'])->withoutMiddleware([JwtMiddleware::class]);
+
+    // Route::post('login', [AuthController::class, 'login'])->withoutMiddleware([JwtMiddleware::class]);
+    // Route::post('register', [AuthController::class, 'register'])->withoutMiddleware([JwtMiddleware::class]);
+    
 });
 
-Broadcast::routes(['middleware' => [JwtMiddleware::class]]);
 
 Route::prefix('file')->group(function (){
     Route::middleware([JwtMiddleware::class])->group(function(){
