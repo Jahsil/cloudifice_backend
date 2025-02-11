@@ -8,7 +8,17 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\JwtMiddleware;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Log;
 
+Route::post('/broadcasting/auth', function (Request $request) {
+    Log::info('Broadcasting auth request:', [
+        'socket_id' => $request->socket_id,
+        'channel_name' => $request->channel_name,
+        'user' => $request->user(), // Log the authenticated user
+    ]);
+
+    return Broadcast::auth($request);
+})->middleware('auth:api');
 
 // Group all authentication-related routes under the 'auth' prefix
 Route::prefix('auth')->group(function () {
@@ -57,7 +67,7 @@ Route::prefix('file')->group(function (){
 
 
 Route::prefix('chat')->group(function (){
-    Route::middleware([JwtMiddleware::class])->group(function(){
+    Route::middleware('auth:sanctum')->group(function () {
         Route::post('/send-message', [MessageController::class, 'sendMessage']);
         Route::post('/mark-as-read/{id}', [MessageController::class, 'markAsRead']);
         Route::get('/message-history/{userId}', [MessageController::class, 'getHistory']);
