@@ -14,10 +14,11 @@ class MessageController extends Controller
     //
     public function sendMessage(Request $request)
     {
-        $user = $request->attributes->get("user");
+        //$user = $request->attributes->get("user");
+        $user = $request->user()->id;
 
         $message = Message::create([
-            'sender_id' => $user->id,
+            'sender_id' => $user,
             'receiver_id' => $request->receiver_id,
             'group_id' => $request->group_id,
             'message' => $request->message,
