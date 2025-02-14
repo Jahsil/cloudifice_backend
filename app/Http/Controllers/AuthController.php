@@ -421,7 +421,7 @@ class AuthController extends Controller
                 60 * 24 * 7, // Expiration (7 days)
                 '/', // Path (accessible to all routes)
                 config('session.domain'), // Domain (ensure frontend can access)
-                false, // Secure (allow HTTP & HTTPS)
+                true, // Secure (allow HTTP & HTTPS)
                 false, // HttpOnly (allow JavaScript access)
                 false // SameSite=Lax (prevent CSRF but allow cross-domain)
             );;
