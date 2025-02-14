@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Message;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -332,8 +333,11 @@ class AuthController extends Controller
     {
         try {
             $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
+		'first_name' => 'required|string|max:255',
+		'last_name' => 'required|string|max:255',
+		'email' => 'required|string|email|max:255|unique:users',
+		'phone' => 'required|string|max:15|unique:users',
+		'nationality' => 'required|string',
                 'password' => [
                     'required',
                     'string',
@@ -450,7 +454,40 @@ class AuthController extends Controller
                 'first_name' => $request->user()->first_name,
                 'last_name' => $request->user()->last_name,
                 'username' => $request->user()->username,
-                'email' => $request->user()->email,
+		'email' => $request->user()->email,
+		'profile_image' => asset('storage/'.$request->user()->profile_image)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Fetch Auth User Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Could not fetch user details.'], 500);
+        }
+    }
+
+    public function users()
+    {
+        try {
+		$users = User::select("id","first_name", "last_name","phone", "username", DB::raw("CASE 
+             		   WHEN profile_image IS NOT NULL 
+                		THEN CONCAT('" . asset('storage') . "/', profile_image) 
+                		ELSE NULL 
+             			END AS profile_image_url"))
+			->addSelect([
+			   'lastMessage' => Message::select("message")
+			   	->whereColumn("sender_id", "users.id")
+				->orWhereColumn("receiver_id", "users.id")
+				->orderByDesc("created_at")
+				->limit(1),
+			'lastMessageTime' => Message::select("created_at")
+                                ->whereColumn("sender_id", "users.id")
+                                ->orWhereColumn("receiver_id", "users.id")
+                                ->orderByDesc("created_at")
+                                ->limit(1),
+			])
+			->get();
+	   
+            return response()->json([
+                "status" => "OK",
+                "data" => $users
             ]);
         } catch (\Exception $e) {
             Log::error('Fetch Auth User Error: ' . $e->getMessage());

@@ -28,6 +28,7 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', [AuthController::class, 'userSanctum']);
+        Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
     });
 
@@ -48,7 +49,7 @@ Route::prefix('auth')->group(function () {
 
 
 Route::prefix('file')->group(function (){
-    Route::middleware([JwtMiddleware::class])->group(function(){
+    Route::middleware('auth:sanctum')->group(function(){
         Route::get('list', [FileSystemController::class , 'listFolders']);
         Route::get('list-archive', [FileSystemController::class , 'listArchive']);
         Route::get('list-trash', [FileSystemController::class , 'listTrash']);
@@ -56,6 +57,7 @@ Route::prefix('file')->group(function (){
         Route::post('delete-folder', [FileSystemController::class , 'deleteFolder']);
         Route::post('upload', [FileSystemController::class , 'uploadFile']);
 
+        Route::post('upload-profile', [FileSystemController::class , 'uploadProfileImage']);
 
         Route::post('upload_file', [FileSystemController::class , 'uploadFile2']);
         Route::post('check_chunk', [FileSystemController::class , 'checkChunks']);

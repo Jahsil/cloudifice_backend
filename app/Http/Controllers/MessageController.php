@@ -9,6 +9,11 @@ use App\Events\MessageSent;
 use App\Events\MessageRead;
 use Illuminate\Support\Facades\Broadcast;
 
+use Illuminate\Support\Facades\DB;   
+use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Auth;
+
+
 class MessageController extends Controller
 {
     //
@@ -42,14 +47,41 @@ class MessageController extends Controller
 
     public function getHistory($userId)
     {
+        try {
 
-        $messages = Message::where('sender_id', auth()->id())
-            ->orWhere('receiver_id', auth()->id())
-            ->orWhere('group_id', Group::whereHas('users', function ($query) {
-                $query->where('user_id', auth()->id());
-            })->pluck('id'))
-            ->get();
+	    $user = Auth::user();
 
-        return response()->json($messages);
+	    DB::beginTransaction();
+
+            $messages = Message::where(function ($query) use ($userId, $user) {
+		    $query->where(function ($q) use ($user) {
+		    	$q->where("sender_id", $user->id)
+			   ->orWhere("receiver_id", $user->id);
+		    })
+		    ->where(function ($q) use ($userId){
+		        $q->where("sender_id",$userId)
+		 	   ->orWhere("receiver_id", $userId);
+		    });
+                })
+                ->orderBy('created_at', 'desc') 
+                ->paginate(10); 
+
+            DB::commit();
+
+            return response()->json([
+                "status" => "OK",
+                "data" => $messages
+            ]);
+
+        } catch (\Exception $e) {
+            // Rollback in case of any failure
+            DB::rollBack();
+
+            return response()->json([
+                'error' => 'Something went wrong!',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
+
 }

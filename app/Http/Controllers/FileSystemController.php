@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use App\Models\User;
+
 
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -635,7 +639,38 @@ class FileSystemController extends Controller
 
         }
     
-   
+    public function uploadProfileImage(Request $request)
+    {
+        $request->validate([
+            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+    
+        $user = Auth::user();
+    
+        // Delete old image if exists
+        if ($user->profile_image) {
+            Storage::disk('public')->delete($user->profile_image);
+	}
+	$originalNameWithoutExtension = pathinfo($request->file('profile_image')->getClientOriginalName(), PATHINFO_FILENAME);
+
+	$fileName = 'user_' . $user->id . '_' . $originalNameWithoutExtension . '.' .  $request->file('profile_image')->extension();
+
+        // Store new image
+        $path = Storage::disk('public')->putFileAs('profile_images', $request->file('profile_image'),$fileName);
+    
+	// Update database
+	User::where('id', $user->id)
+	    ->update([
+	        'profile_image' => $path
+	    ]);
+        //$user->update(['profile_image' => $path]);
+    
+        return response()->json([
+            'message' => 'Profile image updated successfully',
+            'profile_image' => asset("storage/{$path}")
+        ],200);
+    }
+        
 
 
     public function runShellCommands(){
