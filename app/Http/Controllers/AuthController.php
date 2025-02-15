@@ -400,7 +400,7 @@ class AuthController extends Controller
                 RateLimiter::clear($key);
 
                 // Regenerate the session ID to prevent session fixation attacks
-                $request->session()->regenerate();
+                // $request->session()->regenerate();
 
                 // Generate a Sanctum token (optional, for API access)
                 $token = $request->user()->createToken('auth-token')->plainTextToken;
