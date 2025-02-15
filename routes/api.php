@@ -91,6 +91,6 @@ Route::get('/debug-session', function (Request $request) {
         'session' => session()->all(),
         'user' => auth()->user(),
     ]);
-})->middleware(['web', 'auth:sanctum']);
+})->middleware(['auth:sanctum']);
 
 
