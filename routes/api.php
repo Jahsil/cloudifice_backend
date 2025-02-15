@@ -20,6 +20,8 @@ Route::post('/broadcasting/auth', function (Request $request) {
     return Broadcast::auth($request);
 })->middleware('auth:api');
 
+Route::post('/login', [AuthController::class, 'loginSanctum']);
+
 // Group all authentication-related routes under the 'auth' prefix
 Route::prefix('auth')->group(function () {
     // sanctum 
