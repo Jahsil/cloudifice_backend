@@ -380,51 +380,60 @@ class AuthController extends Controller
     public function loginSanctum(Request $request)
     {
         try {
+            // Validate the request
             $request->validate([
                 'email' => 'required|email',
                 'password' => 'required',
             ]);
 
+            // Rate limiting key based on IP
             $key = 'login_attempts_' . $request->ip();
 
+            // Check if too many login attempts
             if (RateLimiter::tooManyAttempts($key, 5)) {
                 return response()->json(['error' => 'Too many login attempts. Try again later.'], 429);
             }
 
-            $user = User::where('email', $request->email)->first();
+            // Attempt to authenticate the user
+            if (Auth::attempt($request->only('email', 'password'))) {
+                // Clear rate limiter on successful login
+                RateLimiter::clear($key);
 
-            if (!$user || !Hash::check($request->password, $user->password)) {
-                RateLimiter::hit($key, 60); // Store failed attempt for 1 minute
-                Log::warning('Failed login attempt from IP: ' . $request->ip());
-                
-                throw ValidationException::withMessages([
-                    'email' => ['Invalid credentials'],
-                ]);
+                // Regenerate the session ID to prevent session fixation attacks
+                $request->session()->regenerate();
+
+                // Generate a Sanctum token (optional, for API access)
+                $token = $request->user()->createToken('auth-token')->plainTextToken;
+
+                // Return the user data and token
+                return response()->json([
+                    'user' => [
+                        'id' => $request->user()->id,
+                        'first_name' => $request->user()->first_name,
+                        'last_name' => $request->user()->last_name,
+                        'username' => $request->user()->username,
+                        'email' => $request->user()->email,
+                    ],
+                    'token' => $token, // Optional, for API access
+                ], 200)->cookie(
+                    'auth_token', // Cookie name
+                    $token, // Token value
+                    60 * 24 * 7, // Expiration (7 days)
+                    '/', // Path (accessible to all routes)
+                    config('session.domain'), // Domain (ensure frontend can access)
+                    true, // Secure (allow HTTP & HTTPS)
+                    false, // HttpOnly (allow JavaScript access)
+                    false // SameSite=Lax (prevent CSRF but allow cross-domain)
+                );
             }
 
-            RateLimiter::clear($key); // Reset failed attempts on successful login
+            // Increment failed login attempts
+            RateLimiter::hit($key, 60);
+            Log::warning('Failed login attempt from IP: ' . $request->ip());
 
-            $token = $user->createToken('auth-token')->plainTextToken;
-
-            return response()->json([
-                'user' => [
-                    'id' => $user->id,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                ],
-                'token' => $token
-            ], 200)->cookie(
-                'auth_token', // Cookie name
-                $token, // Token value
-                60 * 24 * 7, // Expiration (7 days)
-                '/', // Path (accessible to all routes)
-                config('session.domain'), // Domain (ensure frontend can access)
-                true, // Secure (allow HTTP & HTTPS)
-                false, // HttpOnly (allow JavaScript access)
-                false // SameSite=Lax (prevent CSRF but allow cross-domain)
-            );;
+            throw ValidationException::withMessages([
+                'email' => ['Invalid credentials'],
+            ]);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->errors()], 401);
         } catch (\Exception $e) {
