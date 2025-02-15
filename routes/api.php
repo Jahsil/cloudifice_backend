@@ -9,6 +9,8 @@ use App\Http\Middleware\JwtMiddleware;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
+
 
 Route::post('/broadcasting/auth', function (Request $request) {
     Log::info('Broadcasting auth request:', [
@@ -81,4 +83,14 @@ Route::prefix('chat')->group(function (){
 
     });
 });
+
+Route::get('/debug-session', function (Request $request) {
+    return response()->json([
+        'cookies' => request()->cookies->all(),
+        'headers' => request()->headers->all(),
+        'session' => session()->all(),
+        'user' => auth()->user(),
+    ]);
+})->middleware(['web', 'auth:sanctum']);
+
 
