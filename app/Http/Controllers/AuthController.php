@@ -376,7 +376,6 @@ class AuthController extends Controller
         }
     }
 
-    // Login User
     public function loginSanctum(Request $request)
     {
         try {
@@ -394,37 +393,24 @@ class AuthController extends Controller
                 return response()->json(['error' => 'Too many login attempts. Try again later.'], 429);
             }
 
-            // Attempt to authenticate the user
+            // Attempt to authenticate the user using the built-in session authentication
             if (Auth::attempt($request->only('email', 'password'))) {
                 // Clear rate limiter on successful login
                 RateLimiter::clear($key);
 
                 // Regenerate the session ID to prevent session fixation attacks
-                // $request->session()->regenerate();
+                $request->session()->regenerate();
 
-                // Generate a Sanctum token (optional, for API access)
-                $token = $request->user()->createToken('auth-token')->plainTextToken;
-
-                // Return the user data and token
+                // Return the user data (without token)
                 return response()->json([
                     'user' => [
-                        'id' => $request->user()->id,
-                        'first_name' => $request->user()->first_name,
-                        'last_name' => $request->user()->last_name,
-                        'username' => $request->user()->username,
-                        'email' => $request->user()->email,
+                        'id' => Auth::user()->id,
+                        'first_name' => Auth::user()->first_name,
+                        'last_name' => Auth::user()->last_name,
+                        'username' => Auth::user()->username,
+                        'email' => Auth::user()->email,
                     ],
-                    'token' => $token, // Optional, for API access
-                ], 200)->cookie(
-                    'auth_token', // Cookie name
-                    $token, // Token value
-                    60 * 24 * 7, // Expiration (7 days)
-                    '/', // Path (accessible to all routes)
-                    config('session.domain'), // Domain (ensure frontend can access)
-                    true, // Secure (allow HTTP & HTTPS)
-                    false, // HttpOnly (allow JavaScript access)
-                    false // SameSite=Lax (prevent CSRF but allow cross-domain)
-                );
+                ], 200);
             }
 
             // Increment failed login attempts
@@ -441,6 +427,7 @@ class AuthController extends Controller
             return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
         }
     }
+
 
     // Logout User
     public function logoutSanctum(Request $request)
