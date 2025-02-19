@@ -93,4 +93,6 @@ Route::get('/debug-session', function (Request $request) {
     ]);
 })->middleware(['auth:sanctum']);
 
-
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('');
