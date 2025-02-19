@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Cookie;
+
 
 
 
@@ -401,6 +403,21 @@ class AuthController extends Controller
                 // Regenerate the session ID to prevent session fixation attacks
                 $request->session()->regenerate();
 
+                $user = Auth::user();
+
+		$token = $user->createToken('auth_token')->plainTextToken;
+
+		$encodedToken = base64_encode($token);
+
+                $cookie = Cookie::create('auth_token', $encodedToken)
+                    ->withSecure(false) // Change to true if using HTTPS
+                    ->withHttpOnly(false) // Allow JavaScript access
+                    ->withSameSite('Lax')
+		    ->withPath('/'); // Available on the entire domain
+
+		$cookie = cookie('auth_token', base64_encode($token), 60 * 24, '/', null, false, false, false, 'Lax');
+
+
                 // Return the user data (without token)
                 return response()->json([
                     'user' => [
@@ -410,7 +427,7 @@ class AuthController extends Controller
                         'username' => Auth::user()->username,
                         'email' => Auth::user()->email,
                     ],
-                ], 200);
+                ], 200)->withCookie($cookie);
             }
 
             // Increment failed login attempts
