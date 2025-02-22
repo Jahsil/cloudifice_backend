@@ -34,6 +34,8 @@ Route::prefix('auth')->group(function () {
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
+        Route::post('/finish_registration', [AuthController::class , 'finishRegistration'])->withoutMiddleware([JwtMiddleware::class]);
+
     });
 
 
