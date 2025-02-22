@@ -21,6 +21,8 @@ class MessageController extends Controller
     {
         //$user = $request->attributes->get("user");
         $user = $request->user()->id;
+        Log::info(json_encode($user));
+        Log::info("==================");
 
         $message = Message::create([
             'sender_id' => $user,
