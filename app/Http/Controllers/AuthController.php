@@ -479,24 +479,26 @@ class AuthController extends Controller
     public function users()
     {
         try {
-		$users = User::select("id","first_name", "last_name","phone", "username", DB::raw("CASE 
-             		   WHEN profile_image IS NOT NULL 
-                		THEN CONCAT('" . asset('storage') . "/', profile_image) 
-                		ELSE NULL 
-             			END AS profile_image_url"))
-			->addSelect([
-			   'lastMessage' => Message::select("message")
-			   	->whereColumn("sender_id", "users.id")
-				->orWhereColumn("receiver_id", "users.id")
-				->orderByDesc("created_at")
-				->limit(1),
-			'lastMessageTime' => Message::select("created_at")
-                                ->whereColumn("sender_id", "users.id")
-                                ->orWhereColumn("receiver_id", "users.id")
-                                ->orderByDesc("created_at")
-                                ->limit(1),
-			])
-			->get();
+		
+            $users = User::select("id", "first_name", "last_name", "phone", "username", "profile_image")
+            ->addSelect([
+                'lastMessage' => Message::select("message")
+                    ->whereColumn("sender_id", "users.id")
+                    ->orWhereColumn("receiver_id", "users.id")
+                    ->orderByDesc("created_at")
+                    ->limit(1),
+                'lastMessageTime' => Message::select("created_at")
+                    ->whereColumn("sender_id", "users.id")
+                    ->orWhereColumn("receiver_id", "users.id")
+                    ->orderByDesc("created_at")
+                    ->limit(1),
+            ])
+            ->get()
+            ->map(function ($user) {
+                $user->profile_image_url = $user->profile_image ? asset('storage/' . $user->profile_image) : null;
+                return $user;
+            });
+
 	   
             return response()->json([
                 "status" => "OK",
