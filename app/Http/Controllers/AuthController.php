@@ -435,7 +435,7 @@ class AuthController extends Controller
             Log::warning('Failed login attempt from IP: ' . $request->ip());
 
             throw ValidationException::withMessages([
-                'email' => ['Invalid credentials'],
+                'message' => 'Invalid credentials',
             ]);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->errors()], 401);
