@@ -20,7 +20,7 @@ Route::post('/broadcasting/auth', function (Request $request) {
     ]);
 
     return Broadcast::auth($request);
-})->middleware('auth:api');
+})->middleware('auth:sanctum');
 
 Route::post('/login', [AuthController::class, 'loginSanctum']);
 
@@ -34,10 +34,10 @@ Route::prefix('auth')->group(function () {
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
-        Route::post('/finish_registration', [AuthController::class , 'finishRegistration'])->withoutMiddleware([JwtMiddleware::class]);
+        // Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
 
     });
-
+    Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
 
     // Route::post('/login', [AuthController::class, 'loginSanctum']);
     // Route::post('/logout', [AuthController::class, 'logoutSanctum'])->middleware('auth:sanctum');

@@ -46,7 +46,8 @@ class FileSystemController extends Controller
             //          'error' => $validator->errors(),
             //      ], 422);
             //  }
-     
+     	     $user = Auth::user();
+
              $encodedURI = trim($request->query('path'));
              $path = urldecode($encodedURI);
      
@@ -59,11 +60,28 @@ class FileSystemController extends Controller
              }
      
              $rootPath = "/home";
-             $username = $request->attributes->get("user")->username;
-     
+	     $username = $user->username;
+
+	     if(!$username){
+	         return response()->json([
+                     'status' => 'error',
+                     'message' => 'No username provided.',
+                 ], 400);
+	     }
+	     Log::info("username is =================");
+	     Log::info($username);     
              // Construct the full search path
-             $searchPath = realpath($rootPath . '/' . $username . '/' . $path . '/');
-     
+             // $searchPath = realpath($rootPath . '/' . $username . '/' . $path . '/');
+    		
+	     $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+	        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+  	     if ($searchPath === false) {
+        	$searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                          trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                           ltrim($path, DIRECTORY_SEPARATOR);
+             }
+ 
              // Ensure the search path exists and is within the allowed root directory
              if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
                  return response()->json([
@@ -73,7 +91,14 @@ class FileSystemController extends Controller
              }
      
              // Get directory contents
-             $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
+	     // $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
+	     //
+	     $contents = File::files($searchPath); // Only files
+    	     $directories = File::directories($searchPath); // Only directories
+
+	     $contents = array_merge($contents, $directories);
+
+
              Log::info("Contents of directory: " . json_encode($contents));
      
              // Process each item in the directory
@@ -83,7 +108,7 @@ class FileSystemController extends Controller
                 if(str_starts_with($item,".")){
                     continue;
                 }
-                 $itemPath = $searchPath . '/' . $item;
+                 $itemPath = $item;
      
                  if (!file_exists($itemPath)) {
                      continue; // Skip if the item no longer exists
@@ -100,7 +125,7 @@ class FileSystemController extends Controller
                      'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
                      'date' => date('M d', $stat['mtime']), // Last modified date
                      'time' => date('H:i', $stat['mtime']), // Last modified time
-                     'name' => $item, // File or directory name
+                     'name' => basename($item), // File or directory name
                      'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
                  ];
              }
@@ -270,15 +295,29 @@ class FileSystemController extends Controller
                 'error' => $validator->errors(),
             ], 422);
         }
-     
-        $path = trim($request->query('path'));
+        $user = Auth::user();
+
+	$path = trim($request->query('path'));
+	if($path === 'root'){
+	    $path = '/';
+	}
         $name = trim($request->query('name'));
 
         $rootPath = "/home";
-        $username = $request->attributes->get("user")->username;
+        $username = $user->username;
         
     
-        $searchPath = $rootPath . '/' . $username . '/'  . $path;
+        // $searchPath = $rootPath . '/' . $username . '/'  . $path;
+	// Construct full path safely
+	$searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+	// If realpath() fails (e.g., path does not exist), construct a clean path manually
+	if ($searchPath === false) {
+    	$searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+        	          trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+               		   ltrim($path, DIRECTORY_SEPARATOR);
+	}
+
 
      
         // Ensure the search path exists and is within the allowed root directory
@@ -289,8 +328,15 @@ class FileSystemController extends Controller
             ], 400);
         }
 
-        $fullPath = "/home" . "/" . $username . "/" . $path . "/" . $name;
-
+        // $fullPath = "/home" . "/" . $username . "/" . $path . "/" . $name;
+	$fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . $name);
+	
+	if ($fullPath === false) {
+        $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                          trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+			  ltrim($path, DIRECTORY_SEPARATOR). 
+			  trim($name, DIRECTORY_SEPARATOR);
+        }
     
         try {
 
