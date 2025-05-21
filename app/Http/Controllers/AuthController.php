@@ -162,10 +162,9 @@ class AuthController extends Controller
         try {
             $user = DB::table('users')
                 ->where('id', $user_id)
-                ->select('username') // Ensure the field exists in the result
                 ->first();
         
-            if ($user && $user->username) {
+            if ($user && $user->username !== null) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'User already exists',
