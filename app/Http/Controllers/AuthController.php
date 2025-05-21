@@ -160,28 +160,26 @@ class AuthController extends Controller
         }
 
         try {
-            // insert the username in the users table 
             $user = DB::table('users')
                 ->where('id', $user_id)
+                ->select('username') // Ensure the field exists in the result
                 ->first();
-            if($user && $user->username){
+        
+            if ($user && $user->username) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'User already exists',
                 ], 500);
             }
-            
+        
         } catch (QueryException $e) {
-            // Log the error for debugging
             Log::error("User insert failed: " . $e->getMessage());
-    
             return response()->json(['error' => 'Failed to create user'], 500);
         } catch (\Exception $e) {
-            // Catch any other errors
             Log::error("Unexpected error: " . $e->getMessage());
-    
             return response()->json(['error' => 'Something went wrong'], 500);
         }
+        
 
     
         // Create the user
