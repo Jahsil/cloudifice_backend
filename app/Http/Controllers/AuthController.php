@@ -164,7 +164,7 @@ class AuthController extends Controller
                 ->where('id', $user_id)
                 ->first();
         
-            if ($user && $user->username == null) {
+            if ($user && $user->username !== null) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'User already exists',
