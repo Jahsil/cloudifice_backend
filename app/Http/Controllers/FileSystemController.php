@@ -94,7 +94,11 @@ class FileSystemController extends Controller
 	     // $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
 	     //
 	     $contents = File::files($searchPath); // Only files
-    	     $directories = File::directories($searchPath); // Only directories
+    	 $directories = File::directories($searchPath); // Only directories
+
+         Log::info("Contents are : " . json_encode($contents));
+         Log::info("Directories are : " . json_encode($directories));
+
 
 	     $contents = array_merge($contents, $directories);
 
