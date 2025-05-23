@@ -129,6 +129,8 @@ class FileSystemController extends Controller
      public function listArchive(Request $request)
      {
          try {
+     	     $user = Auth::user();
+
              $encodedURI = trim($request->query('path'));
              $path = urldecode($encodedURI);
      
@@ -233,6 +235,8 @@ class FileSystemController extends Controller
      public function listTrash(Request $request)
      {
          try {
+     	     $user = Auth::user();
+
              $encodedURI = trim($request->query('path'));
              $path = urldecode($encodedURI);
      
@@ -427,7 +431,7 @@ class FileSystemController extends Controller
 
         $path = trim($request->query('path'));  
         
-   
+        $user = Auth::user();
         
         $rootPath = "/home";
         $username = $user->username;
@@ -533,8 +537,9 @@ class FileSystemController extends Controller
             ], 422);
         }
 
-        $path = trim($request->query('path'));  
-        
+        $path = trim($request->query('path')); 
+
+        $user = Auth::user();
    
         
         $rootPath = "/home";
@@ -694,6 +699,7 @@ class FileSystemController extends Controller
             ], 422);
 	    }
 
+     	$user = Auth::user();
 	
 
         $fileName = $request->fileName;
@@ -817,6 +823,8 @@ class FileSystemController extends Controller
             ], 422);
 	    }
 
+        $user = Auth::user();
+
         $fileName = $request->fileName;
         $username = $user->username;
         // $username = "eyouel";
@@ -859,6 +867,8 @@ class FileSystemController extends Controller
 
     public function viewFile(Request $request){
         
+
+        $user = Auth::user();
 
         $encodedURI = trim($request->query('path'));
         $path = urldecode($encodedURI);
