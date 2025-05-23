@@ -872,6 +872,7 @@ class FileSystemController extends Controller
         
 
         $user = Auth::user();
+        Log::info('User is :::'. json_encode($user));
 
         $encodedURI = trim($request->query('path'));
         $path = urldecode($encodedURI);
