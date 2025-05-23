@@ -34,18 +34,7 @@ class FileSystemController extends Controller
      {
          try {
              // Validate the request
-            //  $rules = [
-            //      'path' => 'required|string',
-            //  ];
-     
-            //  $validator = Validator::make($request->query(), $rules);
-     
-            //  if ($validator->fails()) {
-            //      return response()->json([
-            //          'status' => 'error',
-            //          'error' => $validator->errors(),
-            //      ], 422);
-            //  }
+          
      	     $user = Auth::user();
 
              $encodedURI = trim($request->query('path'));
@@ -59,52 +48,237 @@ class FileSystemController extends Controller
                  ], 400);
              }
      
-             $rootPath = "/home";
-	     $username = $user->username;
+            $rootPath = "/home";
+             $username = $user->username;
 
-	     if(!$username){
-	         return response()->json([
-                     'status' => 'error',
-                     'message' => 'No username provided.',
-                 ], 400);
-	     }
-	     Log::info("username is =================");
-	     Log::info($username);     
-             // Construct the full search path
-             // $searchPath = realpath($rootPath . '/' . $username . '/' . $path . '/');
-    		
-	     $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+            if(!$username){
+                return response()->json([
+                        'status' => 'error',
+                        'message' => 'No username provided.',
+                    ], 400);
+            }
+         
+            // Construct the full search path
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
 
-	        // If realpath() fails (e.g., path does not exist), construct a clean path manually
-  	     if ($searchPath === false) {
-        	$searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                          trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                           ltrim($path, DIRECTORY_SEPARATOR);
-             }
- 
-             // Ensure the search path exists and is within the allowed root directory
-             if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+                // If realpath() fails (e.g., path does not exist), construct a clean path manually
+            if ($searchPath === false) {
+                $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                    trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                    ltrim($path, DIRECTORY_SEPARATOR);
+                }
+    
+                // Ensure the search path exists and is within the allowed root directory
+                if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'No file or directory found.',
+                    ], 400);
+                }
+        
+                // Get directory contents
+                $contents = File::files($searchPath); // Only files
+                $directories = File::directories($searchPath); // Only directories
+
+                $contents = array_merge($contents, $directories);
+
+                // Process each item in the directory
+                $data = [];
+                foreach ($contents as $item) {
+                    if(str_starts_with($item,".")){
+                        continue;
+                    }
+                    $itemPath = $item;
+        
+                    if (!file_exists($itemPath)) {
+                        continue; // Skip if the item no longer exists
+                    }
+        
+                    $stat = stat($itemPath);
+                    $ownerInfo = posix_getpwuid($stat['uid']);
+                    $groupInfo = posix_getgrgid($stat['gid']);
+        
+                    $data[] = [
+                        'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
+                        'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
+                        'group' => $groupInfo['name'] ?? 'unknown', // File group
+                        'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
+                        'date' => date('M d', $stat['mtime']), // Last modified date
+                        'time' => date('H:i', $stat['mtime']), // Last modified time
+                        'name' => basename($item), // File or directory name
+                        'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
+                    ];
+                }
+        
+                return response()->json([
+                    'status' => 'OK',
+                    'message' => 'File query successful.',
+                    'result' => $data,
+                ], 200);
+     
+         } catch (\Exception $e) {
+             Log::error("Failed to access directory: " . $e->getMessage());
+             return response()->json([
+                 'status' => 'error',
+                 'message' => 'Failed to access directory.',
+                 'error' => $e->getMessage(),
+             ], 500);
+         }
+     }
+
+     public function listArchive(Request $request)
+     {
+         try {
+             $encodedURI = trim($request->query('path'));
+             $path = urldecode($encodedURI);
+     
+             // Prevent directory traversal attacks
+             if (strpos($path, '..') !== false || strpos($path, '/') === 0) {
                  return response()->json([
                      'status' => 'error',
-                     'message' => 'No file or directory found.',
+                     'message' => 'Invalid path provided.',
                  ], 400);
              }
      
-             // Get directory contents
-	     // $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
-	     //
-	     $contents = File::files($searchPath); // Only files
-    	 $directories = File::directories($searchPath); // Only directories
+             $rootPath = "/home";
+             $username = $user->username;
+            // $username = "eyouel";
 
-         Log::info("Contents are : " . json_encode($contents));
-         Log::info("Directories are : " . json_encode($directories));
+            $archivePath = "/home" . "/". $username . "/". "Archive";
+
+            if(!File::isDirectory($archivePath)){
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Archive directory does not exist.',
+                ], 400);
+            }
 
 
-	     $contents = array_merge($contents, $directories);
+            if(!$username){
+                return response()->json([
+                        'status' => 'error',
+                        'message' => 'No username provided.',
+                    ], 400);
+            }
 
+                
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . 'Archive'. DIRECTORY_SEPARATOR . $path);
 
-             Log::info("Contents of directory: " . json_encode($contents));
+                // If realpath() fails (e.g., path does not exist), construct a clean path manually
+            if ($searchPath === false) {
+                $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            ltrim($path, DIRECTORY_SEPARATOR);
+                }
+    
+                // Ensure the search path exists and is within the allowed root directory
+                if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'No file or directory found.',
+                    ], 400);
+                }
+        
+                // Get directory contents
+        
+                $contents = File::files($searchPath); // Only files
+                $directories = File::directories($searchPath); // Only directories
+
+                $contents = array_merge($contents, $directories);
+
+                // Process each item in the directory
+                $data = [];
+                foreach ($contents as $item) {
+                    if(str_starts_with($item,".")){
+                        continue;
+                    }
+                    $itemPath = $item;
+        
+                    if (!file_exists($itemPath)) {
+                        continue; // Skip if the item no longer exists
+                    }
+        
+                    $stat = stat($itemPath);
+                    $ownerInfo = posix_getpwuid($stat['uid']);
+                    $groupInfo = posix_getgrgid($stat['gid']);
+        
+                    $data[] = [
+                        'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
+                        'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
+                        'group' => $groupInfo['name'] ?? 'unknown', // File group
+                        'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
+                        'date' => date('M d', $stat['mtime']), // Last modified date
+                        'time' => date('H:i', $stat['mtime']), // Last modified time
+                        'name' => basename($item), // File or directory name
+                        'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
+                    ];
+                }
+        
+                return response()->json([
+                    'status' => 'OK',
+                    'message' => 'File query successful.',
+                    'result' => $data,
+                ], 200);
+        
+         } catch (\Exception $e) {
+             Log::error("Failed to access directory: " . $e->getMessage());
+             return response()->json([
+                 'status' => 'error',
+                 'message' => 'Failed to access directory.',
+                 'error' => $e->getMessage(),
+             ], 500);
+         }
+     }
+
+     public function listTrash(Request $request)
+     {
+         try {
+             $encodedURI = trim($request->query('path'));
+             $path = urldecode($encodedURI);
      
+             // Prevent directory traversal attacks
+             if (strpos($path, '..') !== false || strpos($path, '/') === 0) {
+                 return response()->json([
+                     'status' => 'error',
+                     'message' => 'Invalid path provided.',
+                 ], 400);
+             }
+     
+            $rootPath = "/home";
+            $username = $user->username;
+            // $username = "eyouel";
+
+            if(!$username){
+                return response()->json([
+                        'status' => 'error',
+                        'message' => 'No username provided.',
+                    ], 400);
+            }
+
+                
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . 'Trash'. DIRECTORY_SEPARATOR . $path);
+
+                // If realpath() fails (e.g., path does not exist), construct a clean path manually
+            if ($searchPath === false) {
+                $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            ltrim($path, DIRECTORY_SEPARATOR);
+                }
+    
+            // Ensure the search path exists and is within the allowed root directory
+            if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No file or directory found.',
+                ], 400);
+            }
+        
+
+            $contents = File::files($searchPath); // Only files
+            $directories = File::directories($searchPath); // Only directories
+
+            $contents = array_merge($contents, $directories);
+
              // Process each item in the directory
              $data = [];
              foreach ($contents as $item) {
@@ -150,140 +324,6 @@ class FileSystemController extends Controller
          }
      }
 
-     public function listArchive(Request $request)
-     {
-         try {
-             $rootPath = "/home";
-             $username = $request->attributes->get("user")->username;
-             $path = "Archive";
-     
-             // Construct the full search path
-             $searchPath = realpath($rootPath . '/' . $username . '/' . $path );
-     
-             // Ensure the search path exists and is within the allowed root directory
-             if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
-                 return response()->json([
-                     'status' => 'error',
-                     'message' => 'No file or directory found.',
-                 ], 400);
-             }
-     
-             // Get directory contents
-             $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
-             Log::info("Contents of directory: " . json_encode($contents));
-     
-             // Process each item in the directory
-             $data = [];
-             foreach ($contents as $item) {
-                Log::info("File----  $item");
-                if(str_starts_with($item,".")){
-                    continue;
-                }
-                 $itemPath = $searchPath . '/' . $item;
-     
-                 if (!file_exists($itemPath)) {
-                     continue; // Skip if the item no longer exists
-                 }
-     
-                 $stat = stat($itemPath);
-                 $ownerInfo = posix_getpwuid($stat['uid']);
-                 $groupInfo = posix_getgrgid($stat['gid']);
-     
-                 $data[] = [
-                     'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
-                     'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
-                     'group' => $groupInfo['name'] ?? 'unknown', // File group
-                     'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
-                     'date' => date('M d', $stat['mtime']), // Last modified date
-                     'time' => date('H:i', $stat['mtime']), // Last modified time
-                     'name' => $item, // File or directory name
-                     'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
-                 ];
-             }
-     
-             return response()->json([
-                 'status' => 'OK',
-                 'message' => 'File query successful.',
-                 'result' => $data,
-             ], 200);
-     
-         } catch (\Exception $e) {
-             Log::error("Failed to access directory: " . $e->getMessage());
-             return response()->json([
-                 'status' => 'error',
-                 'message' => 'Failed to access directory.',
-                 'error' => $e->getMessage(),
-             ], 500);
-         }
-     }
-
-     public function listTrash(Request $request)
-     {
-         try {
-             $rootPath = "/home";
-             $username = $request->attributes->get("user")->username;
-             $path = "Trash";
-     
-             // Construct the full search path
-             $searchPath = realpath($rootPath . '/' . $username . '/' . $path );
-     
-             // Ensure the search path exists and is within the allowed root directory
-             if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
-                 return response()->json([
-                     'status' => 'error',
-                     'message' => 'No file or directory found.',
-                 ], 400);
-             }
-     
-             // Get directory contents
-             $contents = array_diff(scandir($searchPath), ['.', '..']); // Exclude . and ..
-             Log::info("Contents of directory: " . json_encode($contents));
-     
-             // Process each item in the directory
-             $data = [];
-             foreach ($contents as $item) {
-                Log::info("File----  $item");
-                if(str_starts_with($item,".")){
-                    continue;
-                }
-                 $itemPath = $searchPath . '/' . $item;
-     
-                 if (!file_exists($itemPath)) {
-                     continue; // Skip if the item no longer exists
-                 }
-     
-                 $stat = stat($itemPath);
-                 $ownerInfo = posix_getpwuid($stat['uid']);
-                 $groupInfo = posix_getgrgid($stat['gid']);
-     
-                 $data[] = [
-                     'permissions' => substr(sprintf('%o', fileperms($itemPath)), -4), // File permissions
-                     'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
-                     'group' => $groupInfo['name'] ?? 'unknown', // File group
-                     'size' => is_dir($itemPath) ? "unknown" : $stat['size'], // Directory or file size
-                     'date' => date('M d', $stat['mtime']), // Last modified date
-                     'time' => date('H:i', $stat['mtime']), // Last modified time
-                     'name' => $item, // File or directory name
-                     'type' => is_dir($itemPath) ? 'directory' : 'file', // Type of file
-                 ];
-             }
-     
-             return response()->json([
-                 'status' => 'OK',
-                 'message' => 'File query successful.',
-                 'result' => $data,
-             ], 200);
-     
-         } catch (\Exception $e) {
-             Log::error("Failed to access directory: " . $e->getMessage());
-             return response()->json([
-                 'status' => 'error',
-                 'message' => 'Failed to access directory.',
-                 'error' => $e->getMessage(),
-             ], 500);
-         }
-     }
-
      public function createFolder(Request $request){
  
         $rules = [
@@ -301,26 +341,25 @@ class FileSystemController extends Controller
         }
         $user = Auth::user();
 
-	$path = trim($request->query('path'));
-	if($path === 'root'){
-	    $path = '/';
-	}
+        $path = trim($request->query('path'));
+        if($path === 'root'){
+            $path = '/';
+        }
         $name = trim($request->query('name'));
 
         $rootPath = "/home";
         $username = $user->username;
+        // $username = "eyouel";
         
-    
-        // $searchPath = $rootPath . '/' . $username . '/'  . $path;
-	// Construct full path safely
-	$searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
 
-	// If realpath() fails (e.g., path does not exist), construct a clean path manually
-	if ($searchPath === false) {
-    	$searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-        	          trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-               		   ltrim($path, DIRECTORY_SEPARATOR);
-	}
+        $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($searchPath === false) {
+            $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim($path, DIRECTORY_SEPARATOR);
+        }
 
 
      
@@ -333,14 +372,15 @@ class FileSystemController extends Controller
         }
 
         // $fullPath = "/home" . "/" . $username . "/" . $path . "/" . $name;
-	$fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . $name);
-	
-	if ($fullPath === false) {
-        $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                          trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-			  ltrim($path, DIRECTORY_SEPARATOR). 
-			  trim($name, DIRECTORY_SEPARATOR);
-        }
+        $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . $name);
+        
+        if ($fullPath === false) {
+            $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                ltrim($path). DIRECTORY_SEPARATOR . 
+                trim($name, DIRECTORY_SEPARATOR);
+            }
+
     
         try {
 
@@ -385,13 +425,23 @@ class FileSystemController extends Controller
             ], 422);
         }
 
-        $path = trim($request->query('path'));       
+        $path = trim($request->query('path'));  
+        
+   
         
         $rootPath = "/home";
-        $username = $request->attributes->get("user")->username;
+        $username = $user->username;
+        // $username = "eyouel";
         
     
-        $searchPath = $rootPath . '/' . $username . '/'  . $path;
+        $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($searchPath === false) {
+            $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim($path, DIRECTORY_SEPARATOR);
+        }
 
      
         // Ensure the search path exists and is within the allowed root directory
@@ -403,9 +453,27 @@ class FileSystemController extends Controller
         }
 
         
-        $fullPath = "/home" . "/" . $username . "/" . $path;
+        // $fullPath = "/home" . "/" . $username . "/" . $path;
+        $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($fullPath === false) {
+            $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim($path, DIRECTORY_SEPARATOR);
+        }
+
+
         $trashPath = "/home" . "/". $username . "/". "Trash";
 
+        $trashPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "Trash");
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($trashPath === false) {
+            $trashPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim("Trash", DIRECTORY_SEPARATOR);
+        }
 
        try {
 
@@ -438,6 +506,114 @@ class FileSystemController extends Controller
         return response()->json([
             'status' => 'OK',
             'message' => 'Directory moved to trash successfully.',
+            'trashPath' => $trashPath
+        ], 201);
+
+       } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create directory.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function deleteFile(Request $request){
+
+        $rules = [
+            'path' => 'required|string'
+        ];
+
+        $validator = Validator::make($request->query(), $rules);
+
+        if($validator->fails()){
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+        }
+
+        $path = trim($request->query('path'));  
+        
+   
+        
+        $rootPath = "/home";
+        $username = $user->username;
+        // $username = "eyouel";
+        
+    
+        // $searchPath = $rootPath . '/' . $username . '/'  . $path;
+        $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($searchPath === false) {
+            $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim($path, DIRECTORY_SEPARATOR);
+        }
+
+     
+        // Ensure the search path exists and is within the allowed root directory
+        if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No file or directory found.',
+            ], 400);
+        }
+
+        
+        // $fullPath = "/home" . "/" . $username . "/" . $path;
+        $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($fullPath === false) {
+            $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim($path, DIRECTORY_SEPARATOR);
+        }
+
+
+        // $trashPath = "/home" . "/". $username . "/". "Trash";
+        $trashPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "Trash");
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($trashPath === false) {
+            $trashPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim("Trash", DIRECTORY_SEPARATOR);
+        }
+
+       try {
+
+        if(!File::isFile($fullPath)){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The file does not exist.',
+            ], 400);
+        }
+
+        if(!File::isDirectory($trashPath)){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Trash directory does not exist.',
+            ], 400);
+        }
+
+        
+        $destinationPath = $trashPath . '/' . basename($fullPath);
+
+        if (!File::copy($fullPath, $destinationPath)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to copy file to Trash.',
+            ], 500);
+        }
+
+        File::delete($fullPath);
+
+        return response()->json([
+            'status' => 'OK',
+            'message' => 'File moved to trash successfully.',
             'trashPath' => $trashPath
         ], 201);
 
@@ -524,24 +700,55 @@ class FileSystemController extends Controller
         $chunkIndex = $request->chunkIndex;
         $totalChunks = $request->totalChunks;
         $path = $request->path;
-        
 
+        if($path === 'root'){
+            $path = '/';
+        }
+        
         $rootPath = "/home";
-        $username = $request->attributes->get("user")->username;
+        $username = $user->username;
+        // $username = "eyouel";
+
+        
         
     
-        $searchPath = $rootPath . '/' . $username . '/'  . $path;
+        // $searchPath = $rootPath . '/' . $username . '/'  . $path;
+        $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
+	
+        if ($searchPath === false) {
+            $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                ltrim($path);
+            }
+
+
 
         // Ensure the search path exists and is within the allowed root directory
-        if (!$searchPath || !File::exists($searchPath) || strpos($searchPath, $rootPath) !== 0) {
+        if (!$searchPath || strpos($searchPath, $rootPath) !== 0) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No file or directory found.',
+                'message' => 'Search path is wrong.',
             ], 400);
         }
 
-        $fullPath = "/home" . "/" . $username . "/" . $path;
-        $tempDir = "/home" . "/" . $username . "/". "tmp";
+        // $fullPath = "/home" . "/" . $username . "/" . $path;
+        $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
+	
+        if ($fullPath === false) {
+            $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                ltrim($path);
+            }
+
+        // $tempDir = "/home" . "/" . $username . "/". "tmp";
+        $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($tempDir === false) {
+            $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim("tmp", DIRECTORY_SEPARATOR);
+        }
 
         if(!File::isDirectory($tempDir)){
             return response()->json([
@@ -611,11 +818,19 @@ class FileSystemController extends Controller
 	    }
 
         $fileName = $request->fileName;
-
-        $username = $request->attributes->get("user")->username;
+        $username = $user->username;
+        // $username = "eyouel";
         
 
-        $tempDir = "/home" . "/". $username . "/". "tmp";
+        // $tempDir = "/home" . "/". $username . "/". "tmp";
+        $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($tempDir === false) {
+            $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim("tmp", DIRECTORY_SEPARATOR);
+        }
 
         if(!File::isDirectory($tempDir)){
             return response()->json([
@@ -649,11 +864,19 @@ class FileSystemController extends Controller
         $path = urldecode($encodedURI);
 
         $rootPath = "/home";
-        // $username = $request->attributes->get("user")->username;
-        $username = "eyouel";
+        $username = $user->username;
+        // $username = "eyouel";
 
         // Construct the full search path
-        $filePath = $rootPath . '/' . $username . '/' . $path;
+        // $filePath = $rootPath . '/' . $username . '/' . $path;
+        $filePath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+
+        // If realpath() fails (e.g., path does not exist), construct a clean path manually
+        if ($filePath === false) {
+            $filePath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                        ltrim($path, DIRECTORY_SEPARATOR);
+        }
        
 
         // Ensure the search path exists and is within the allowed root directory
@@ -700,19 +923,19 @@ class FileSystemController extends Controller
         // Delete old image if exists
         if ($user->profile_image) {
             Storage::disk('public')->delete($user->profile_image);
-	}
-	$originalNameWithoutExtension = pathinfo($request->file('profile_image')->getClientOriginalName(), PATHINFO_FILENAME);
+        }
+        $originalNameWithoutExtension = pathinfo($request->file('profile_image')->getClientOriginalName(), PATHINFO_FILENAME);
 
-	$fileName = 'user_' . $user->id . '_' . $originalNameWithoutExtension . '.' .  $request->file('profile_image')->extension();
+        $fileName = 'user_' . $user->id . '_' . $originalNameWithoutExtension . '.' .  $request->file('profile_image')->extension();
 
         // Store new image
         $path = Storage::disk('public')->putFileAs('profile_images', $request->file('profile_image'),$fileName);
     
-	// Update database
-	User::where('id', $user->id)
-	    ->update([
-	        'profile_image' => $path
-	    ]);
+        // Update database
+        User::where('id', $user->id)
+            ->update([
+                'profile_image' => $path
+            ]);
         //$user->update(['profile_image' => $path]);
     
         return response()->json([
