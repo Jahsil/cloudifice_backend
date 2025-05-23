@@ -825,6 +825,9 @@ class FileSystemController extends Controller
 
         $user = Auth::user();
 
+        $rootPath = "/home";
+        $username = $user->username;
+
         $fileName = $request->fileName;
         $username = $user->username;
         // $username = "eyouel";
