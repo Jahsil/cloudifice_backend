@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FileSystemController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\GroupController;
 use Illuminate\Support\Facades\Route;
@@ -31,13 +32,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'loginSanctum']);
 
     Route::middleware('auth:sanctum')->group(function () {
+        
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
-        // Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
-
+        Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
     });
-    Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
 
     // Route::post('/login', [AuthController::class, 'loginSanctum']);
     // Route::post('/logout', [AuthController::class, 'logoutSanctum'])->middleware('auth:sanctum');
@@ -61,10 +61,11 @@ Route::prefix('file')->group(function (){
         Route::get('list-trash', [FileSystemController::class , 'listTrash']);
         Route::post('create-folder', [FileSystemController::class , 'createFolder']);
         Route::post('delete-folder', [FileSystemController::class , 'deleteFolder']);
+        Route::post('delete-file', [FileSystemController::class , 'deleteFile']);
         Route::post('upload', [FileSystemController::class , 'uploadFile']);
-
+    
         Route::post('upload-profile', [FileSystemController::class , 'uploadProfileImage']);
-
+    
         Route::post('upload_file', [FileSystemController::class , 'uploadFile2']);
         Route::post('check_chunk', [FileSystemController::class , 'checkChunks']);
     
@@ -85,6 +86,15 @@ Route::prefix('chat')->group(function (){
 
     });
 });
+
+Route::prefix('dashboard')->group(function (){
+    Route::middleware('auth:sanctum')->group(function(){
+        Route::get('/total-stats', [DashboardController::class , 'getTotalStats']);
+    });
+    
+
+});
+
 
 Route::get('/debug-session', function (Request $request) {
     return response()->json([
