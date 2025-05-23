@@ -459,14 +459,27 @@ class AuthController extends Controller
     public function userSanctum(Request $request)
     {
         try {
+            // $user = DB::table('users')
+            //     ->where('id', 1)
+            //     ->first();
+            // return response()->json([
+            //     'id' => $user->id,
+            //     'first_name' => $user->first_name,
+            //     'last_name' => $user->last_name,
+            //     'username' => $user->username,
+            //     'email' => $user->email,
+            //     'profile_image' => asset('storage/'.$user->profile_image)
+            //     ]);
+
             return response()->json([
                 'id' => $request->user()->id,
                 'first_name' => $request->user()->first_name,
                 'last_name' => $request->user()->last_name,
                 'username' => $request->user()->username,
-		'email' => $request->user()->email,
-		'profile_image' => asset('storage/'.$request->user()->profile_image)
-            ]);
+                'email' => $request->user()->email,
+                'profile_image' => asset('storage/'.$request->user()->profile_image)
+                ]);
+
         } catch (\Exception $e) {
             Log::error('Fetch Auth User Error: ' . $e->getMessage());
             return response()->json(['error' => 'Could not fetch user details.'], 500);
