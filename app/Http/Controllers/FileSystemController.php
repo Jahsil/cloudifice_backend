@@ -818,6 +818,11 @@ class FileSystemController extends Controller
     private function mergeChunks($fileName, $totalChunks, $tempDir, $finalPath)
     {
         $finalFile = fopen($finalPath, 'wb'); // Use binary mode
+        Log::warning("Final file path : {$chunkPath}");
+        Log::warning("total chuncks path : {$chunkPath}");
+        Log::warning("temp dir path : {$chunkPath}");
+        Log::warning("file name path : {$chunkPath}");
+
         
         if ($finalFile === false) {
             throw new \Exception("Could not open final file for writing: {$finalPath}");
