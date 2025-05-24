@@ -683,22 +683,22 @@ class FileSystemController extends Controller
 
     public function uploadFile2(Request $request){
         try {
-            $rules = [
-                'file' => 'required|file',
-                'fileName' => 'required|string',
-                'chunkIndex' => 'required|integer',
-                'totalChunks' => 'required|integer',
-                'path' => 'required|string'
-            ];
+            // $rules = [
+            //     'file' => 'required|file',
+            //     'fileName' => 'required|string',
+            //     'chunkIndex' => 'required|integer',
+            //     'totalChunks' => 'required|integer',
+            //     'path' => 'required|string'
+            // ];
     
-            $validator = Validator::make($request->all(), $rules);
+            // $validator = Validator::make($request->all(), $rules);
     
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'error' => $validator->errors(),
-                ], 422);
-            }
+            // if ($validator->fails()) {
+            //     return response()->json([
+            //         'status' => 'error',
+            //         'error' => $validator->errors(),
+            //     ], 422);
+            // }
     
             $user = Auth::user();
     
