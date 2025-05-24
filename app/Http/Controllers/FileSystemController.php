@@ -682,110 +682,102 @@ class FileSystemController extends Controller
     }
 
     public function uploadFile2(Request $request){
-        $rules = [
-            'file' => 'required|file',
-            'fileName' => 'required|string',
-            'chunkIndex' => 'required|integer',
-            'totalChunks' => 'required|integer',
-            'path' => 'required|string'
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'error' => $validator->errors(),
-            ], 422);
-	    }
-
-     	$user = Auth::user();
-	
-
-        $fileName = $request->fileName;
-        $chunkIndex = $request->chunkIndex;
-        $totalChunks = $request->totalChunks;
-        $path = $request->path;
-
-        if($path === 'root'){
-            $path = '/';
-        }
-        
-        $rootPath = "/home";
-        $username = $user->username;
-        // $username = "eyouel";
-
-        
-        
+        try {
+            $rules = [
+                'file' => 'required|file',
+                'fileName' => 'required|string',
+                'chunkIndex' => 'required|integer',
+                'totalChunks' => 'required|integer',
+                'path' => 'required|string'
+            ];
     
-        // $searchPath = $rootPath . '/' . $username . '/'  . $path;
-        $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
-	
-        if ($searchPath === false) {
-            $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                ltrim($path);
+            $validator = Validator::make($request->all(), $rules);
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'error' => $validator->errors(),
+                ], 422);
             }
-
-
-
-        // Ensure the search path exists and is within the allowed root directory
-        if (!$searchPath || strpos($searchPath, $rootPath) !== 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Search path is wrong.',
-            ], 400);
-        }
-
-        // $fullPath = "/home" . "/" . $username . "/" . $path;
-        $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
-	
-        if ($fullPath === false) {
-            $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                ltrim($path);
+    
+            $user = Auth::user();
+    
+            $fileName = $request->fileName;
+            $chunkIndex = $request->chunkIndex;
+            $totalChunks = $request->totalChunks;
+            $path = $request->path;
+    
+            if($path === 'root'){
+                $path = '/';
             }
-
-        // $tempDir = "/home" . "/" . $username . "/". "tmp";
-        $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
-
-        // If realpath() fails (e.g., path does not exist), construct a clean path manually
-        if ($tempDir === false) {
-            $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-                        trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-                        ltrim("tmp", DIRECTORY_SEPARATOR);
-        }
-
-        if(!File::isDirectory($tempDir)){
+    
+            $rootPath = "/home";
+            $username = $user->username;
+    
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
+            if ($searchPath === false) {
+                $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                ltrim($path);
+            }
+    
+            if (!$searchPath || strpos($searchPath, $rootPath) !== 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Search path is wrong.',
+                ], 400);
+            }
+    
+            $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
+            if ($fullPath === false) {
+                $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                ltrim($path);
+            }
+    
+            $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
+            if ($tempDir === false) {
+                $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                            trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
+                            ltrim("tmp", DIRECTORY_SEPARATOR);
+            }
+    
+            if(!File::isDirectory($tempDir)){
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'tmp directory does not exist.',
+                ], 400);
+            }
+    
+            if(!File::isDirectory($fullPath)){
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'The destination directory does not exist.',
+                ], 400);
+            }
+    
+            // Save the chunk
+            $chunkPath = $tempDir . "{$fileName}.part{$chunkIndex}";
+            file_put_contents($chunkPath, file_get_contents($request->file('file')), FILE_APPEND);
+    
+            // Check if all chunks are received
+            if ($this->allChunksReceived($fileName, $totalChunks, $tempDir)) {
+                $finalPath = "{$fullPath}/{$fileName}";
+                $this->mergeChunks($fileName, $totalChunks, $tempDir, $finalPath);
+            }
+    
+            return response()->json(['status' => 'OK','message' => 'Chunk uploaded successfully']);
+    
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'tmp directory does not exist.',
-            ], 400);
+                'message' => 'An unexpected error occurred.',
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500);
         }
-
-        if(!File::isDirectory($fullPath)){
-            return response()->json([
-                'status' => 'error',
-                'message' => 'The destination directory does not exist.',
-            ], 400);
-        }
-
-
-        // Save the chunk
-        $chunkPath = $tempDir . "{$fileName}.part{$chunkIndex}";
-        file_put_contents($chunkPath, file_get_contents($request->file('file')), FILE_APPEND);
-
-        
-        // Check if all chunks are received
-        if ($this->allChunksReceived($fileName, $totalChunks, $tempDir)) {
-            $finalPath = "/{$fullPath}/{$fileName}";
-            $this->mergeChunks($fileName, $totalChunks, $tempDir, $finalPath);
-        }
-
-        return response()->json(['status' => 'OK','message' => 'Chunk uploaded successfully']);
-
-
     }
+    
 
     private function allChunksReceived($fileName, $totalChunks, $tempDir)
     {
