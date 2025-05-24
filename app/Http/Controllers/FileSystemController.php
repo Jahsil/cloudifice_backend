@@ -758,6 +758,7 @@ class FileSystemController extends Controller
     
             // Save the chunk
             $chunkPath = $tempDir . "{$fileName}.part{$chunkIndex}";
+            Log::info("Chunk path is ::: ". $chunkPath);
             file_put_contents($chunkPath, file_get_contents($request->file('file')), FILE_APPEND);
     
             // Check if all chunks are received
