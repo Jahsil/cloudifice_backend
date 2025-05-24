@@ -743,19 +743,19 @@ class FileSystemController extends Controller
             }
 
             // Check write permissions
-            if (!is_writable($tempDir)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Temp directory is not writable.',
-                ], 400);
-            }
+        if (!is_writable($tempDir)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Temp directory is not writable.',
+            ], 400);
+        }
 
-            if (!is_writable($fullPath)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Destination directory is not writable.',
-                ], 400);
-            }
+        if (!is_writable($fullPath)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Destination directory is not writable.',
+            ], 400);
+        }
     
             if(!File::isDirectory($tempDir)){
                 return response()->json([
@@ -774,12 +774,6 @@ class FileSystemController extends Controller
             // Save the chunk
             $chunkPath = $tempDir. DIRECTORY_SEPARATOR . "{$fileName}.part{$chunkIndex}";
             Log::info("Chunk path is ::: ". $chunkPath);
-
-            if (!$request->file('file')->move($tempDir, $chunkPath)) {
-                throw new \Exception("Failed to save chunk {$chunkIndex}");
-            }
-
-            
             file_put_contents($chunkPath, file_get_contents($request->file('file')), FILE_APPEND);
     
             // Check if all chunks are received
