@@ -802,10 +802,13 @@ class FileSystemController extends Controller
         Log::warning("file name path : {$fileName}");
 
         for ($i = 0; $i < $totalChunks; $i++) {
-            if (!file_exists($tempDir . "{$fileName}.part{$i}")) {
+            if (!file_exists($tempDir . DIRECTORY_SEPARATOR . "{$fileName}.part{$i}")) {
+                Log::warning("return type is false");
                 return false;
             }
         }
+        Log::warning("return type is true");
+
         return true;
     }
 
