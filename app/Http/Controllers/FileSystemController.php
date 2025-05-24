@@ -805,16 +805,46 @@ class FileSystemController extends Controller
         return true;
     }
 
+    // private function mergeChunks($fileName, $totalChunks, $tempDir, $finalPath)
+    // {
+    //     $finalFile = fopen($finalPath, 'w');
+    //     for ($i = 0; $i < $totalChunks; $i++) {
+    //         $chunkPath = $tempDir . "{$fileName}.part{$i}";
+    //         fwrite($finalFile, file_get_contents($chunkPath));
+    //         unlink($chunkPath); // Delete chunk after merging
+    //     }
+    //     fclose($finalFile);
+    // }
     private function mergeChunks($fileName, $totalChunks, $tempDir, $finalPath)
     {
-        $finalFile = fopen($finalPath, 'w');
-        for ($i = 0; $i < $totalChunks; $i++) {
-            $chunkPath = $tempDir . "{$fileName}.part{$i}";
-            fwrite($finalFile, file_get_contents($chunkPath));
-            unlink($chunkPath); // Delete chunk after merging
+        $finalFile = fopen($finalPath, 'wb'); // Use binary mode
+        
+        if ($finalFile === false) {
+            throw new \Exception("Could not open final file for writing: {$finalPath}");
         }
-        fclose($finalFile);
+
+        try {
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $chunkPath = $tempDir . DIRECTORY_SEPARATOR . "{$fileName}.part{$i}";
+                $chunkContent = file_get_contents($chunkPath);
+                
+                if ($chunkContent === false) {
+                    throw new \Exception("Could not read chunk: {$chunkPath}");
+                }
+                
+                if (fwrite($finalFile, $chunkContent) === false) {
+                    throw new \Exception("Could not write chunk to final file: {$chunkPath}");
+                }
+                
+                if (!unlink($chunkPath)) {
+                    Log::warning("Could not delete chunk: {$chunkPath}");
+                }
+            }
+        } finally {
+            fclose($finalFile);
+        }
     }
+
 
     public function checkChunks(Request $request){
         $rules = [
