@@ -797,6 +797,10 @@ class FileSystemController extends Controller
 
     private function allChunksReceived($fileName, $totalChunks, $tempDir)
     {
+        Log::warning("total chuncks path : {$totalChunks}");
+        Log::warning("temp dir path : {$tempDir}");
+        Log::warning("file name path : {$fileName}");
+
         for ($i = 0; $i < $totalChunks; $i++) {
             if (!file_exists($tempDir . "{$fileName}.part{$i}")) {
                 return false;
