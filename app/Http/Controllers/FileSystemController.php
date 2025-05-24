@@ -714,32 +714,47 @@ class FileSystemController extends Controller
             $rootPath = "/home";
             $username = $user->username;
     
-            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
-            if ($searchPath === false) {
-                $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                                trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                                ltrim($path);
-            }
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+                if ($searchPath === false) {
+                    $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                    trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                    ltrim($path, DIRECTORY_SEPARATOR);
+                }
+
+                if (!$searchPath || strpos($searchPath, $rootPath) !== 0) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Invalid path specified.',
+                    ], 400);
+                }
     
-            if (!$searchPath || strpos($searchPath, $rootPath) !== 0) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Search path is wrong.',
-                ], 400);
-            }
-    
-            $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path );
-            if ($fullPath === false) {
-                $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                                trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-                                ltrim($path);
-            }
+            $fullPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+                if ($fullPath === false) {
+                    $fullPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                    trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
+                                    ltrim($path, DIRECTORY_SEPARATOR);
+                }
     
             $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
             if ($tempDir === false) {
                 $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                             trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                             ltrim("tmp", DIRECTORY_SEPARATOR);
+            }
+
+            // Check write permissions
+            if (!is_writable($tempDir)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Temp directory is not writable.',
+                ], 400);
+            }
+
+            if (!is_writable($fullPath)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Destination directory is not writable.',
+                ], 400);
             }
     
             if(!File::isDirectory($tempDir)){
@@ -759,6 +774,12 @@ class FileSystemController extends Controller
             // Save the chunk
             $chunkPath = $tempDir. DIRECTORY_SEPARATOR . "{$fileName}.part{$chunkIndex}";
             Log::info("Chunk path is ::: ". $chunkPath);
+
+            if (!$request->file('file')->move($tempDir, $chunkPath)) {
+                throw new \Exception("Failed to save chunk {$chunkIndex}");
+            }
+
+            
             file_put_contents($chunkPath, file_get_contents($request->file('file')), FILE_APPEND);
     
             // Check if all chunks are received
