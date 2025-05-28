@@ -15,7 +15,8 @@ class SessionController extends Controller
 
         try {
             $decrypted = Crypt::decrypt(urldecode($encrypted));
-
+            print_r(json_encode($decrypted));
+            
             return response()->json([
                 "decrypted" => $decrypted
             ]);
