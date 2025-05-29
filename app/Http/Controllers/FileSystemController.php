@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
+use App\Models\File as FileModel;
+use App\Models\RecentFile as RecentFileModel; 
+use Illuminate\Support\Facades\DB;
+
+
 
 
 use Symfony\Component\Process\Process;
@@ -49,7 +54,8 @@ class FileSystemController extends Controller
              }
      
             $rootPath = "/home";
-             $username = $user->username;
+            //  $username = $user->username;
+             $username = "eyouel";
 
             if(!$username){
                 return response()->json([
@@ -713,6 +719,7 @@ class FileSystemController extends Controller
     
             $rootPath = "/home";
             $username = $user->username;
+            // $username = "eyouel";
     
             $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
                 if ($searchPath === false) {
@@ -780,7 +787,47 @@ class FileSystemController extends Controller
             if ($this->allChunksReceived($fileName, $totalChunks, $tempDir)) {
                 $finalPath = "{$fullPath}/{$fileName}";
                 $this->mergeChunks($fileName, $totalChunks, $tempDir, $finalPath);
-            }
+
+                try {
+                    DB::beginTransaction();
+
+                    $mimeType = mime_content_type($finalPath);
+
+                    // Determine file category
+                    if (str_starts_with($mimeType, 'image/')) {
+                        $fileCategory = 'image';
+                    } elseif (str_starts_with($mimeType, 'video/')) {
+                        $fileCategory = 'video';
+                    } elseif (
+                        in_array($mimeType, [
+                            'application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/plain'
+                        ])
+                    ) {
+                        $fileCategory = 'document';
+                    } else {
+                        $fileCategory = 'other';
+                    }
+
+                    $file = FileModel::create([
+                        'file_name' => $fileName,
+                        'file_path' => $finalPath,
+                        'file_type' => $fileCategory,
+                        'file_size' => filesize($finalPath),
+                        'owner_id' => 1,
+                    ]);
+
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error('File insert failed: ' . $e->getMessage());
+                    return response()->json(['error' => 'File insertion failed.'], 500);
+                }
+                }
     
             return response()->json(['status' => 'OK','message' => 'Chunk uploaded successfully']);
     
@@ -963,6 +1010,26 @@ class FileSystemController extends Controller
             $headers['Content-Disposition'] = 'attachment; filename="' . $fileName . '"';
         } else {
             $headers['Content-Disposition'] = 'inline';
+
+                try {
+                    DB::beginTransaction();
+                    $file = FileModel::where('file_path', '=', $filePath)->first();
+
+                    Log::info("returive dfile : ". json_encode($file));
+
+                    $recentFile = RecentFileModel::create([
+                        'user_id' => 1,
+                        'file_id' => $file->id,
+                        'accessed_at' => now()
+                    ]);
+
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error('Recent file insert failed: ' . $e->getMessage());
+                    return response()->json(['error' => 'Recent file insertion failed.'], 500);
+                }
+                
         }
 
         return response()->stream(function () use ($filePath) {
