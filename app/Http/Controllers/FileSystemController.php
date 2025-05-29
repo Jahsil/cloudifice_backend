@@ -54,8 +54,8 @@ class FileSystemController extends Controller
              }
      
             $rootPath = "/home";
-            //  $username = $user->username;
-             $username = "eyouel";
+             $username = $user->username;
+            //  $username = "eyouel";
 
             if(!$username){
                 return response()->json([
