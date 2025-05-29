@@ -29,14 +29,14 @@ Route::post('/login', [AuthController::class, 'loginSanctum']);
 // Group all authentication-related routes under the 'auth' prefix
 Route::prefix('auth')->group(function () {
     // sanctum 
+    Route::post('/register', [AuthController::class, 'registerSanctum']);
+    Route::post('/login', [AuthController::class, 'loginSanctum']);
+    Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/register', [AuthController::class, 'registerSanctum']);
-        Route::post('/login', [AuthController::class, 'loginSanctum']);
     
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
-        Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
         
     });
 
