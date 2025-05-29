@@ -391,6 +391,7 @@ class AuthController extends Controller
             if (RateLimiter::tooManyAttempts($key, 5)) {
                 return response()->json(['error' => 'Too many login attempts. Try again later.'], 429);
             }
+                Log::info("Logging in ....... ");
 
             // Attempt to authenticate the user using the built-in session authentication
             if (Auth::attempt($request->only('email', 'password'))) {
