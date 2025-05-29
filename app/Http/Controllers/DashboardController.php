@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\File;
+use App\Models\File as FileModel;
+use App\Models\RecentFile as RecentFileModel; 
+use App\Models\User; 
+use Illuminate\Support\Facades\DB;
+
 
 use Illuminate\Http\Request;
 
@@ -18,7 +23,10 @@ class DashboardController extends Controller
 
     public function getTotalStats(Request $request)
     {
-        $directory = '/home/eyouel/Desktop';
+        $user = Auth::user();
+        $username = $user->username;
+
+        $directory = '/home' . DIRECTORY_SEPARATOR . $username;
 
         if (!File::exists($directory)) {
             return response()->json(['error' => 'Directory not found.'], 404);
@@ -57,11 +65,14 @@ class DashboardController extends Controller
             $group['size_human'] = $this->formatBytes($group['size']);
         }
 
+        $storageSize = User::where('id', 1)->pluck('storage_limit');
+
         return response()->json([
             'total_files' => count($files),
             'breakdown' => $stats,
+            'storage_size' => $storageSize 
         ]);
     }
+   
 
-    
 }
