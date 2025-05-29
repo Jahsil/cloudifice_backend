@@ -5,6 +5,7 @@ use App\Http\Controllers\FileSystemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\FileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\JwtMiddleware;
 use Illuminate\Support\Facades\Validator;
@@ -28,15 +29,15 @@ Route::post('/login', [AuthController::class, 'loginSanctum']);
 // Group all authentication-related routes under the 'auth' prefix
 Route::prefix('auth')->group(function () {
     // sanctum 
-    Route::post('/register', [AuthController::class, 'registerSanctum']);
-    Route::post('/login', [AuthController::class, 'loginSanctum']);
-
     Route::middleware('auth:sanctum')->group(function () {
-        
+        Route::post('/register', [AuthController::class, 'registerSanctum']);
+        Route::post('/login', [AuthController::class, 'loginSanctum']);
+    
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
         Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
+        
     });
 
     // Route::post('/login', [AuthController::class, 'loginSanctum']);
@@ -80,7 +81,7 @@ Route::prefix('chat')->group(function (){
         Route::post('/send-message', [MessageController::class, 'sendMessage']);
         Route::post('/mark-as-read/{id}', [MessageController::class, 'markAsRead']);
         Route::get('/message-history/{userId}', [MessageController::class, 'getHistory']);
-
+    
         Route::post('/create-group', [GroupController::class, 'createGroup']);
         Route::post('/add-user-to-group/{groupId}', [GroupController::class, 'addUserToGroup']);
 
@@ -90,6 +91,14 @@ Route::prefix('chat')->group(function (){
 Route::prefix('dashboard')->group(function (){
     Route::middleware('auth:sanctum')->group(function(){
         Route::get('/total-stats', [DashboardController::class , 'getTotalStats']);
+    });
+    
+
+});
+
+Route::prefix('file')->group(function (){
+    Route::middleware('auth:sanctum')->group(function(){
+        Route::get('/total-files', [FileController::class , 'getAllFiles']);
     });
     
 
