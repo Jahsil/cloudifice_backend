@@ -33,11 +33,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'loginSanctum']);
     Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
     Route::middleware('auth:sanctum')->group(function () {
-    
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
         Route::post('/logout', [AuthController::class, 'logoutSanctum']);
-        
     });
 
     // Route::post('/login', [AuthController::class, 'loginSanctum']);
@@ -78,13 +76,13 @@ Route::prefix('file')->group(function (){
 
 Route::prefix('chat')->group(function (){
     Route::middleware('auth:sanctum')->group(function () {
+        
         Route::post('/send-message', [MessageController::class, 'sendMessage']);
         Route::post('/mark-as-read/{id}', [MessageController::class, 'markAsRead']);
         Route::get('/message-history/{userId}', [MessageController::class, 'getHistory']);
     
         Route::post('/create-group', [GroupController::class, 'createGroup']);
         Route::post('/add-user-to-group/{groupId}', [GroupController::class, 'addUserToGroup']);
-
     });
 });
 
@@ -99,6 +97,7 @@ Route::prefix('dashboard')->group(function (){
 Route::prefix('file')->group(function (){
     Route::middleware('auth:sanctum')->group(function(){
         Route::get('/total-files', [FileController::class , 'getAllFiles']);
+        Route::get('/recent-files', [FileController::class , 'getRecentFiles']);
     });
     
 

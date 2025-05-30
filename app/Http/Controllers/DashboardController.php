@@ -27,7 +27,8 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $username = $user->username;
-
+        // $username = "eyouel";
+        // $directory = "/home/eyouel/Desktop";
         $directory = '/home' . DIRECTORY_SEPARATOR . $username;
 
         if (!File::exists($directory)) {

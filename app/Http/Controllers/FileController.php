@@ -35,4 +35,28 @@ class FileController extends Controller
             return response()->json(['error' => 'File fetch failed.'], 500);
         }
     }
+
+    public function getRecentFiles(Request $request){
+        try {
+            DB::beginTransaction();
+
+            $recentFiles = 
+                RecentFileModel::join('files', 'recent_files.file_id', '=', 'files.id')
+                    ->join('users', 'recent_files.user_id', '=', 'users.id')
+                    ->select('recent_files.accessed_at', 'files.file_type', 'files.file_size', 'files.file_name')
+                    ->get();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'OK',
+                'recent_files' => $recentFiles
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Files fetch failed: ' . $e->getMessage());
+            return response()->json(['error' => 'File fetch failed.'], 500);
+        }
+    }
 }
