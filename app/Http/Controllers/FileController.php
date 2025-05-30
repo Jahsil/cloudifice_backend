@@ -19,8 +19,9 @@ class FileController extends Controller
 
             $perPage = $request->query('per_page', 10); 
             $files = FileModel::join('users', 'files.owner_id', '=', 'users.id')
-                            ->select('files.*',DB::raw("CONCAT(users.first_name, ' ', users.last_name) AS full_name"))
-                            ->paginate();
+                    ->select('files.*', DB::raw("users.first_name || ' ' || users.last_name AS full_name"))
+                    ->paginate($perPage);
+
 
             DB::commit();
 
