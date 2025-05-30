@@ -533,7 +533,6 @@ class FileSystemController extends Controller
         $rules = [
             'path' => 'required|string'
         ];
-
         $validator = Validator::make($request->query(), $rules);
 
         if($validator->fails()){
@@ -543,7 +542,7 @@ class FileSystemController extends Controller
             ], 422);
         }
 
-        $path = trim($request->query('path')); 
+        $path = rawurldecode(trim($request->query('path'))); 
 
         $user = Auth::user();
    
