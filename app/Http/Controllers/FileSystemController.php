@@ -1016,12 +1016,13 @@ class FileSystemController extends Controller
                     $file = FileModel::where('file_path', '=', $filePath)->first();
 
                     Log::info("returive dfile : ". json_encode($file));
-
-                    $recentFile = RecentFileModel::create([
-                        'user_id' => 1,
-                        'file_id' => $file->id,
-                        'accessed_at' => now()
-                    ]);
+                    if($file){
+                        $recentFile = RecentFileModel::create([
+                            'user_id' => 1,
+                            'file_id' => $file->id,
+                            'accessed_at' => now()
+                        ]);
+                    }
 
                     DB::commit();
                 } catch (\Exception $e) {
