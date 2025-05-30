@@ -522,7 +522,7 @@ class FileSystemController extends Controller
        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to create directory.',
+                'message' => 'Failed to delete directory.',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -631,7 +631,7 @@ class FileSystemController extends Controller
        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to create directory.',
+                'message' => 'Failed to delete file.',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -818,8 +818,18 @@ class FileSystemController extends Controller
                         'file_path' => $finalPath,
                         'file_type' => $fileCategory,
                         'file_size' => filesize($finalPath),
-                        'owner_id' => 1,
+                        'owner_id' => $user->id,
                     ]);
+
+                    $file = FileModel::where('file_path', '=', $finalPath)->first();
+
+                    if($file){
+                        $recentFile = RecentFileModel::create([
+                            'user_id' => $user->id,
+                            'file_id' => $file->id,
+                            'accessed_at' => now()
+                        ]);
+                    }
 
                     DB::commit();
                 } catch (\Exception $e) {
