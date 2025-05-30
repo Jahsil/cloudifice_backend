@@ -543,7 +543,7 @@ class FileSystemController extends Controller
         }
 
         $path = rawurldecode(trim($request->query('path'))); 
-
+        Log::info("raw path : ". $path);
         $user = Auth::user();
    
         
