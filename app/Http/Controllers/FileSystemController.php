@@ -568,6 +568,7 @@ class FileSystemController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'No file or directory found.',
+                'path' => $searchPath
             ], 400);
         }
 
