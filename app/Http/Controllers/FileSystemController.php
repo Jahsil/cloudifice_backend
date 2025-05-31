@@ -554,12 +554,14 @@ class FileSystemController extends Controller
     
         // $searchPath = $rootPath . '/' . $username . '/'  . $path;
         $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . $path);
+        $searchPath = substr($searchPath, 0, -1);
 
         // If realpath() fails (e.g., path does not exist), construct a clean path manually
         if ($searchPath === false) {
             $searchPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                         trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                         ltrim($path, DIRECTORY_SEPARATOR);
+            $searchPath = substr($searchPath, 0, -1);
         }
 
      
