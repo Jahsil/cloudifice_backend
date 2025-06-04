@@ -11,7 +11,7 @@ Broadcast::channel('chat.{id}', function ($user, $id) {
 });
 
 
-Broadcast::channel('presence.online', function(){
+Broadcast::channel('presence.online', function($user){
     return [
         'id' => $user->id,
     ];
