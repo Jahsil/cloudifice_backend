@@ -14,5 +14,8 @@ Broadcast::channel('chat.{id}', function ($user, $id) {
 Broadcast::channel('presence.online', function($user){
     return [
         'id' => $user->id,
+        'first_name' => $user->first_name,
+        'last_name' => $user->last_name,
+        'username' => $user->username
     ];
 });
