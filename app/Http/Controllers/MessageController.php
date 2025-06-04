@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use App\Models\Group;
+use App\Models\User;
 use App\Events\MessageSent;
 use App\Events\MessageRead;
 use Illuminate\Support\Facades\Broadcast;
@@ -20,12 +21,13 @@ class MessageController extends Controller
     public function sendMessage(Request $request)
     {
         //$user = $request->attributes->get("user");
-        $user = $request->user()->id;
-        Log::info(json_encode($user));
-        Log::info("==================");
+        $user = Auth::user();
+        // $user = $request->user()->id;
+
+  
 
         $message = Message::create([
-            'sender_id' => $user,
+            'sender_id' => $user->id,
             'receiver_id' => $request->receiver_id,
             'group_id' => $request->group_id,
             'message' => $request->message,
@@ -52,6 +54,7 @@ class MessageController extends Controller
         try {
 
 	    $user = Auth::user();
+        // $user = (object)["id" => 1];
 
 	    DB::beginTransaction();
 
@@ -73,6 +76,36 @@ class MessageController extends Controller
             return response()->json([
                 "status" => "OK",
                 "data" => $messages
+            ]);
+
+        } catch (\Exception $e) {
+            // Rollback in case of any failure
+            DB::rollBack();
+
+            return response()->json([
+                'error' => 'Something went wrong!',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function setLastActiveTime(Request $request, $userId){
+        try {
+
+            $user = Auth::user();
+
+            DB::beginTransaction();
+
+            $user = User::where('id', $userId)
+                        ->update([
+                            "last_active_time" => now()
+                        ]);
+
+            DB::commit();
+
+            return response()->json([
+                "status" => "OK",
+                "message" => "Last active time set successfully"
             ]);
 
         } catch (\Exception $e) {
