@@ -80,7 +80,7 @@ Route::prefix('chat')->group(function (){
         Route::post('/send-message', [MessageController::class, 'sendMessage']);
         Route::post('/mark-as-read/{id}', [MessageController::class, 'markAsRead']);
         Route::get('/message-history/{userId}', [MessageController::class, 'getHistory']);
-        Route::get('/last-active/{userId}', [MessageController::class, 'setLastActiveTime']);
+        Route::post('/last-active/{userId}', [MessageController::class, 'setLastActiveTime']);
     
         Route::post('/create-group', [GroupController::class, 'createGroup']);
         Route::post('/add-user-to-group/{groupId}', [GroupController::class, 'addUserToGroup']);
