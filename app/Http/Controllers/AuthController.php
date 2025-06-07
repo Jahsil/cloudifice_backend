@@ -496,7 +496,7 @@ class AuthController extends Controller
     {
         try {
 		
-            $users = User::select("id", "first_name", "last_name", "phone", "username", "profile_image")
+            $users = User::select("id", "first_name", "last_name", "phone", "username", "profile_image", "last_active_time")
             ->addSelect([
                 'lastMessage' => Message::select("message")
                     ->whereColumn("sender_id", "users.id")
