@@ -84,6 +84,7 @@ Route::prefix('chat')->group(function (){
     
         Route::post('/create-group', [GroupController::class, 'createGroup']);
         Route::post('/add-user-to-group/{groupId}', [GroupController::class, 'addUserToGroup']);
+        Route::get('/new-messages', [MessageController::class, 'getUnreadMessagesCount']);
     });
 });
 
