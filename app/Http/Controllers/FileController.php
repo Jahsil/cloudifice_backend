@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\File as FileModel;
 use App\Models\RecentFile as RecentFileModel; 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
 
 
 use Illuminate\Http\Request;
