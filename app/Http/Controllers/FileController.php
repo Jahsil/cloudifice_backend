@@ -17,8 +17,11 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
+            $user = Auth::user();
+
             $perPage = $request->query('per_page', 10); 
             $files = FileModel::join('users', 'files.owner_id', '=', 'users.id')
+                    ->where('users.id', $user->id)
                     ->select('files.*', DB::raw("users.first_name || ' ' || users.last_name AS full_name"))
                     ->paginate($perPage);
 
