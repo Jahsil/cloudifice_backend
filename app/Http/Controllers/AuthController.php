@@ -256,6 +256,8 @@ class AuthController extends Controller
             return response()->json(['error' => 'Something went wrong'], 500);
         }
 
+        $this->allowNginxToAccessHomeDirectories($user_id);
+
 
         return response()->json([
             'status' => 'OK',
@@ -600,6 +602,38 @@ class AuthController extends Controller
             ]);
         } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
             return response()->json(['error' => 'Token refresh failed'], 401);
+        }
+    }
+
+    private function allowNginxToAccessHomeDirectories($userId)
+    {
+        try {
+            $user = User::where('id', $userId)
+                ->first();
+            
+            $nginxAccess = new Process(["chown", "-R", "www-data:www-data", $user->username]);
+            $nginxAccess->run();
+
+            if ($nginxAccess->isSuccessful()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Utility directories created.',
+                ], 200);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cannot create utility directories.',
+                'output' => $nginxAccess->getErrorOutput(),
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error("Nginx access change failed: " . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An unexpected error occurred.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 }
