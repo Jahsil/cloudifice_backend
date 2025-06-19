@@ -32,7 +32,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'registerSanctum']);
     Route::post('/login', [AuthController::class, 'loginSanctum']);
     Route::post('/finish_registration', [AuthController::class , 'finishRegistration']);
-    Route::post('/access_delegation', [AuthController::class , 'allowNginxToAccessHomeDirectories']);
+    Route::post('/access_delegation/{userId}', [AuthController::class , 'allowNginxToAccessHomeDirectories']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', [AuthController::class, 'userSanctum']);
         Route::get('/users', [AuthController::class, 'users']);
