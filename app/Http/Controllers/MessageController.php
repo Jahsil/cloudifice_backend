@@ -21,7 +21,7 @@ class MessageController extends Controller
     public function sendMessage(Request $request)
     {
         //$user = $request->attributes->get("user");
-        // $user = Auth::user();
+        $user = Auth::user();
         // $user = $request->user()->id;
 
   
@@ -106,42 +106,6 @@ class MessageController extends Controller
             return response()->json([
                 "status" => "OK",
                 "message" => "Last active time set successfully"
-            ]);
-
-        } catch (\Exception $e) {
-            // Rollback in case of any failure
-            DB::rollBack();
-
-            return response()->json([
-                'error' => 'Something went wrong!',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function getUnreadMessagesCount(Request $request){
-        try {
-
-            $user = Auth::user();
-
-            DB::beginTransaction();
-
-            $user = User::join('messages', 'messages.receiver_id', '=', 'users.id')
-                        ->whereRaw('messages.created_at > users.last_active_time')
-                        ->select('users.id', DB::raw('COUNT(messages.message) AS unread_messages'))
-                        ->groupBy('users.id')
-                        ->get();
-                        
-
-            DB::commit();
-
-            return response()->json([
-                "status" => "OK",
-                // "user" => $user
-                "user" => [
-                    1 => 5,
-                    2 => 0
-                ] 
             ]);
 
         } catch (\Exception $e) {
