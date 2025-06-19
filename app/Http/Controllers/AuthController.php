@@ -616,7 +616,7 @@ class AuthController extends Controller
 
             if ($nginxAccess->isSuccessful()) {
                 return response()->json([
-                    'status' => 'success',
+                    'status' => 'OK',
                     'message' => 'Utility directories created.',
                 ], 200);
             }
