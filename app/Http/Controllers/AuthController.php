@@ -611,7 +611,7 @@ class AuthController extends Controller
             
             $homeDirectory = "/home" . "/" . $user->username; 
             
-            $nginxAccess = new Process(["chown", "-R", "www-data:www-data", $homeDirectory]);
+            $nginxAccess = new Process(["sudo","chown", "-R", "www-data:www-data", $homeDirectory]);
             $nginxAccess->run();
 
             if ($nginxAccess->isSuccessful()) {
