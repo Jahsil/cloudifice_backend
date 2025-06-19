@@ -194,7 +194,7 @@ class AuthController extends Controller
         }
 
         // create trash 
-        $trashPath = "/home" . "/" . $username . "/" . "Trash";
+        $trashPath = "/home" . "/" . $username . "/" . ".Trash";
         $trashFolder = new Process(["sudo", "/usr/bin/mkdir", "-p", $trashPath]);
         $trashFolder->run();
 
@@ -207,7 +207,7 @@ class AuthController extends Controller
         }
 
         // create tmp folder 
-        $tmpPath = "/home" . "/" . $username . "/" . "tmp";
+        $tmpPath = "/home" . "/" . $username . "/" . ".tmp";
 
         $tmpFolder = new Process(["sudo", "/usr/bin/mkdir","-p", $tmpPath]);
         $tmpFolder->run();
@@ -222,7 +222,7 @@ class AuthController extends Controller
         }
 
         // create archive folder 
-        $archivePath = "/home" . "/" . $username . "/" . "Archive";
+        $archivePath = "/home" . "/" . $username . "/" . ".Archive";
 
         $archiveFolder = new Process(["sudo", "/usr/bin/mkdir","-p", $archivePath]);
         $archiveFolder->run();
