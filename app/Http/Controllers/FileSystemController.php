@@ -152,7 +152,7 @@ class FileSystemController extends Controller
              $username = $user->username;
             // $username = "eyouel";
 
-            $archivePath = "/home" . "/". $username . "/". "Archive";
+            $archivePath = "/home" . "/". $username . "/". ".Archive";
 
             if(!File::isDirectory($archivePath)){
                 return response()->json([
@@ -170,7 +170,7 @@ class FileSystemController extends Controller
             }
 
                 
-            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . 'Archive'. DIRECTORY_SEPARATOR . $path);
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . '.Archive'. DIRECTORY_SEPARATOR . $path);
 
                 // If realpath() fails (e.g., path does not exist), construct a clean path manually
             if ($searchPath === false) {
@@ -266,7 +266,7 @@ class FileSystemController extends Controller
             }
 
                 
-            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . 'Trash'. DIRECTORY_SEPARATOR . $path);
+            $searchPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . '.Trash'. DIRECTORY_SEPARATOR . $path);
 
                 // If realpath() fails (e.g., path does not exist), construct a clean path manually
             if ($searchPath === false) {
@@ -474,15 +474,15 @@ class FileSystemController extends Controller
         }
 
 
-        $trashPath = "/home" . "/". $username . "/". "Trash";
+        $trashPath = "/home" . "/". $username . "/". ".Trash";
 
-        $trashPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "Trash");
+        $trashPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . ".Trash");
 
         // If realpath() fails (e.g., path does not exist), construct a clean path manually
         if ($trashPath === false) {
             $trashPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                         trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-                        ltrim("Trash", DIRECTORY_SEPARATOR);
+                        ltrim(".Trash", DIRECTORY_SEPARATOR);
         }
 
        try {
@@ -584,13 +584,13 @@ class FileSystemController extends Controller
 
 
         // $trashPath = "/home" . "/". $username . "/". "Trash";
-        $trashPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "Trash");
+        $trashPath = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . ".Trash");
 
         // If realpath() fails (e.g., path does not exist), construct a clean path manually
         if ($trashPath === false) {
             $trashPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                         trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-                        ltrim("Trash", DIRECTORY_SEPARATOR);
+                        ltrim(".Trash", DIRECTORY_SEPARATOR);
         }
 
        try {
@@ -741,11 +741,11 @@ class FileSystemController extends Controller
                                     ltrim($path, DIRECTORY_SEPARATOR);
                 }
     
-            $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
+            $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . ".tmp");
             if ($tempDir === false) {
                 $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                             trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-                            ltrim("tmp", DIRECTORY_SEPARATOR);
+                            ltrim(".tmp", DIRECTORY_SEPARATOR);
             }
 
             // Check write permissions
@@ -935,13 +935,13 @@ class FileSystemController extends Controller
         
 
         // $tempDir = "/home" . "/". $username . "/". "tmp";
-        $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . "tmp");
+        $tempDir = realpath($rootPath . DIRECTORY_SEPARATOR . $username . DIRECTORY_SEPARATOR . ".tmp");
 
         // If realpath() fails (e.g., path does not exist), construct a clean path manually
         if ($tempDir === false) {
             $tempDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
                         trim($username, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 
-                        ltrim("tmp", DIRECTORY_SEPARATOR);
+                        ltrim(".tmp", DIRECTORY_SEPARATOR);
         }
 
         if(!File::isDirectory($tempDir)){
@@ -1080,7 +1080,6 @@ class FileSystemController extends Controller
         ],200);
     }
         
-
 
     public function runShellCommands(){
 
