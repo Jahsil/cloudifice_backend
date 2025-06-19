@@ -609,7 +609,9 @@ class AuthController extends Controller
             $user = User::where('id', $userId)
                 ->first();
             
-            $nginxAccess = new Process(["chown", "-R", "www-data:www-data", $user->username]);
+            $homeDirectory = "/home" . "/" . $user->username; 
+            
+            $nginxAccess = new Process(["chown", "-R", "www-data:www-data", $homeDirectory]);
             $nginxAccess->run();
 
             if ($nginxAccess->isSuccessful()) {
