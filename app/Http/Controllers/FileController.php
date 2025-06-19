@@ -46,9 +46,12 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
+            $user = Auth::user();
+
             $recentFiles = 
                 RecentFileModel::join('files', 'recent_files.file_id', '=', 'files.id')
                     ->join('users', 'recent_files.user_id', '=', 'users.id')
+                    ->where('users.id', $user->id)
                     ->select('recent_files.accessed_at', 'files.file_type', 'files.file_size', 'files.file_name')
                     ->get();
 
