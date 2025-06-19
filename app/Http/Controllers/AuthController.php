@@ -256,8 +256,6 @@ class AuthController extends Controller
             return response()->json(['error' => 'Something went wrong'], 500);
         }
 
-        $this->allowNginxToAccessHomeDirectories($user_id);
-
 
         return response()->json([
             'status' => 'OK',
@@ -605,7 +603,7 @@ class AuthController extends Controller
         }
     }
 
-    private function allowNginxToAccessHomeDirectories($userId)
+    public function allowNginxToAccessHomeDirectories(Request $request, $userId)
     {
         try {
             $user = User::where('id', $userId)
