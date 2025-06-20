@@ -54,7 +54,7 @@ class FileSystemController extends Controller
              }
      
             $rootPath = "/home";
-             $username = $user->username;
+            $username = $user->username;
             //  $username = "eyouel";
 
             if(!$username){
@@ -403,11 +403,26 @@ class FileSystemController extends Controller
 
             File::makeDirectory($fullPath, 0755, true);
 
+            $stat = stat($fullPath);
+            $ownerInfo = posix_getpwuid($stat['uid']);
+            $groupInfo = posix_getgrgid($stat['gid']);
+
+            $data = [
+                'permissions' => substr(sprintf('%o', fileperms($fullPath)), -4), // File permissions
+                'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
+                'group' => $groupInfo['name'] ?? 'unknown', // File group
+                'size' => is_dir($fullPath) ? "unknown" : $stat['size'], // Directory or file size
+                'date' => date('M d', $stat['mtime']), // Last modified date
+                'time' => date('H:i', $stat['mtime']), // Last modified time
+                'name' => basename($fullPath), // File or directory name
+                'type' => is_dir($fullPath) ? 'directory' : 'file', // Type of file
+            ];
 
             return response()->json([
                 'status' => 'OK',
                 'message' => 'Directory created successfully.',
                 'path' => $fullPath,
+                'data' => $data
             ], 201);
 
 
@@ -831,6 +846,29 @@ class FileSystemController extends Controller
                     }
 
                     DB::commit();
+
+                    $stat = stat($finalPath);
+                    $ownerInfo = posix_getpwuid($stat['uid']);
+                    $groupInfo = posix_getgrgid($stat['gid']);
+
+                    $data = [
+                        'permissions' => substr(sprintf('%o', fileperms($finalPath)), -4), // File permissions
+                        'owner' => $ownerInfo['name'] ?? 'unknown', // File owner
+                        'group' => $groupInfo['name'] ?? 'unknown', // File group
+                        'size' => is_dir($finalPath) ? "unknown" : $stat['size'], // Directory or file size
+                        'date' => date('M d', $stat['mtime']), // Last modified date
+                        'time' => date('H:i', $stat['mtime']), // Last modified time
+                        'name' => basename($finalPath), // File or directory name
+                        'type' => is_dir($finalPath) ? 'directory' : 'file', // Type of file
+                    ];
+
+
+                    return response()->json([
+                        'status' => 'OK',
+                        'message' => 'File uploaded successfully',
+                        'data' => $data
+                    ]);
+
                 } catch (\Exception $e) {
                     DB::rollBack();
                     Log::error('File insert failed: ' . $e->getMessage());
@@ -838,7 +876,6 @@ class FileSystemController extends Controller
                 }
                 }
     
-            return response()->json(['status' => 'OK','message' => 'Chunk uploaded successfully']);
     
         } catch (\Throwable $e) {
             return response()->json([
