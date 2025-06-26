@@ -30,7 +30,7 @@ class ReplicateFile implements ShouldQueue
         // $localPath = '/home'. '/' . $this->username . '/' . $this->filePath;
         
         foreach ($servers as $server) {
-            $this->copyToServer($server, $filePath);
+            $this->copyToServer($server, $this->filePath);
         }
     }
 
