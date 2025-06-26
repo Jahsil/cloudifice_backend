@@ -10,7 +10,7 @@ use App\Models\File as FileModel;
 use App\Models\RecentFile as RecentFileModel; 
 use Illuminate\Support\Facades\DB;
 
-
+use App\Jobs\ReplicateFile;
 
 
 use Symfony\Component\Process\Process;
@@ -862,6 +862,8 @@ class FileSystemController extends Controller
                         'type' => is_dir($finalPath) ? 'directory' : 'file', // Type of file
                     ];
 
+
+                    ReplicateFile::dispatch($username, $finalPath)->afterResponse();
 
                     return response()->json([
                         'status' => 'OK',

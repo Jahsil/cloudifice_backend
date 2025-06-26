@@ -27,10 +27,10 @@ class ReplicateFile implements ShouldQueue
     public function handle(): void
     {
         $servers = explode(',', env('SECONDARY_SERVERS'));
-        $localPath = '/home'. '/' . $this->username . '/' . $this->filePath;
+        // $localPath = '/home'. '/' . $this->username . '/' . $this->filePath;
         
         foreach ($servers as $server) {
-            $this->copyToServer($server, $localPath);
+            $this->copyToServer($server, $filePath);
         }
     }
 
